@@ -2,8 +2,37 @@ from load_data import load_data
 import numpy as np
 from matplotlib import pyplot as plt
 
+def filter_points_behind_camera(homogeneous_camera_points, arrays_to_filter=None):
+    '''
+    Filter points which are behind the camera (and their corresponding labels)
 
-def filter_points_not_in_camera(projected_points, image_shape, z_cameras, semantic_labels):
+    Parameters
+    ----------
+    homogeneous_camera_points : np.array(N, 4)
+        The homogeneous points in the camera coordinate.
+    arrays_to_filter: optional, array of np.array(N, )
+        Other arrays to filter with the same mask as the one used to filter the points
+
+    Return
+    ----------
+    filtered_homogeneous_camera_points : np.array(M, 4)
+        The filtered points which are in front of the image.
+    filtered_arrays: array of np.array(M, )
+        The other arrays filtered with the same mask as the one for the points
+    '''
+    mask = homogeneous_camera_points[:,2]>0 # Remove all points behind the camera
+
+    filtered_homogeneous_camera_points = homogeneous_camera_points[mask, :] 
+    filtered_arrays = None
+    if arrays_to_filter is not None:
+        filtered_arrays = []
+        for array_to_filter in arrays_to_filter:
+            filtered_arrays.append(array_to_filter[mask])
+
+    return filtered_homogeneous_camera_points, filtered_arrays
+
+
+def filter_points_not_in_camera(projected_points, image_shape, arrays_to_filter=None):
     '''
     Filter points which are outside the camera range (and on the same time keep only their corresponding labels and z coordinates):
 
@@ -13,60 +42,72 @@ def filter_points_not_in_camera(projected_points, image_shape, z_cameras, semant
         The projected points (x,y) into the image coordinate
     image_shape : tuple
         Shape of the image we want to put the points on
-    z_cameras : np.array(N, )
-        The z_coordinates in the camera coordinates. We only take it to apply the same filter and have the same index correspondences
-    semantic_labels : np.array(N, 1)
-        The semantic labels of the points. We only take it to apply the same filter and have the same index correspondences
+    arrays_to_filter: optional, array of np.array(N, )
+        Other arrays to filter with the same mask as the one used to filter the points
 
     Return
     ----------
     filtered_projected_points : np.array(M, 2)
         The filtered points which are inside the image
-    filtered_semantic_labels : np.array(M, 1)
-        Their corresponding semantic labels
-    filtered_z_cameras: np.array(M, )
-        Their corresponding depth (z coordinates in the camera coordinate)
+    filtered_arrays: array of np.array(M, )
+        The other arrays filtered with the same mask as the one for the points
     '''
-    filtered_projected_points1 = projected_points[projected_points[:, 0]>=0, :]
-    filtered_semantic_labels = semantic_labels[projected_points[:, 0]>=0]
-    filtered_z_cameras = z_cameras[projected_points[:, 0]>=0]
+    #Remove all points not in the image range
+    mask = np.all([projected_points[:, 0]>=0, projected_points[:, 0]<image_shape[1], projected_points[:, 1]>=0, projected_points[:, 1]<image_shape[0]], axis=0)
+    
+    filtered_projected_points = projected_points[mask, :]
+    filtered_arrays = None
+    if arrays_to_filter is not None:
+        filtered_arrays = []
+        for array_to_filter in arrays_to_filter:
+            filtered_arrays.append(array_to_filter[mask])
 
-    filtered_projected_points2 = filtered_projected_points1[filtered_projected_points1[:, 0]<image_shape[1], :]
-    filtered_semantic_labels = filtered_semantic_labels[filtered_projected_points1[:, 0]<image_shape[1]]
-    filtered_z_cameras = filtered_z_cameras[filtered_projected_points1[:, 0]<image_shape[1]]
+    return filtered_projected_points, filtered_arrays
 
-    filtered_projected_points3 = filtered_projected_points2[filtered_projected_points2[:, 1]>=0, :]
-    filtered_semantic_labels = filtered_semantic_labels[filtered_projected_points2[:, 1]>=0]
-    filtered_z_cameras = filtered_z_cameras[filtered_projected_points2[:, 1]>=0]
 
-    filtered_projected_points = filtered_projected_points3[filtered_projected_points3[:, 1]<image_shape[0], :]
-    filtered_semantic_labels = filtered_semantic_labels[filtered_projected_points3[:, 1]<image_shape[0]]
-    filtered_z_cameras = filtered_z_cameras[filtered_projected_points3[:, 1]<image_shape[0]]
-
-    return filtered_projected_points, filtered_semantic_labels, filtered_z_cameras
-
-def filter_points_behind_camera(homogeneous_camera_points, semantic_labels):
+def compute_projected_points(world_points, K, extrinsic, image_shape, arrays_to_filter=None):
     '''
-    Filter points which are behind the camera (and their corresponding labels)
+    Compute the 2D projected points in the image coordinate system from the corresponding 3D points in the world using the intrinsic/extrinsic matrix of the camera
+    and the shape of the image to remove points outside the range of the image.
 
     Parameters
     ----------
-    homogeneous_camera_points : np.array(N, 4)
-        The homogeneous points in the camera coordinate.
-    semantic_labels : np.array(N, 1)
-        The semantic labels of the points. We only take it to apply the same filter and have the same index correspondences
+    world_points : np.array(N, 3)
+        The inhomogeneous 3D points in the world coordinate system
+    K : np.array(3, 4)
+        The intrinsic parameters of the camera
+    extrinsic: np.array(4, 4)
+        The extrinsic parameters of the camera
+    image_shape : tuple
+        Shape of the image we want to project the points on
+    arrays_to_filter: optional, array of np.array(N, )
+        Other arrays to filter with the same mask as the one used to filter the points which don't appear in the image.
+
 
     Return
     ----------
-    filtered_homogeneous_camera_points : np.array(M, 4)
-        The filtered points which are in front of the image.
-    filtered_semantic_labels : np.array(M, 1)
-        Their corresponding semantic labels
+    filtered_projected_points : np.array(M, 2)
+        The projected points in the image coordinate which are inside the image range
+    filtered_arrays: array of np.array(M, )
+        The other arrays filtered with the same mask as the one used for the points which don't appear in the image. If arrays_to_filter is not None, 
+        add one array with the z-coordinates in the camera coordinate systems of the remaining points.
     '''
-    filtered_homogeneous_camera_points = homogeneous_camera_points[homogeneous_camera_points[:,2]>0, :] # Remove all points behind the camera
-    filtered_semantic_labels = semantic_labels[homogeneous_camera_points[:,2]>0] #We need to remove the same labels
+    homogeneous_world_points = np.hstack((world_points, np.ones(world_points.shape[0]).reshape(-1, 1))) #Add a column of 1 to have homogeneous points
 
-    return filtered_homogeneous_camera_points, filtered_semantic_labels
+    homogeneous_camera_points = (extrinsic@homogeneous_world_points.T).T # Go to the camera coordinate system
+    filtered_homogeneous_camera_points, arrays_to_filter = filter_points_behind_camera(homogeneous_camera_points, arrays_to_filter)
+    z_cameras = filtered_homogeneous_camera_points[:, 2]/filtered_homogeneous_camera_points[:, 3] # Use to know which point to keep when two are on the same pixel in the image after projection 
+    
+    if arrays_to_filter is not None:
+        arrays_to_filter.append(z_cameras)
+
+    homogeneous_projected_points = (K@filtered_homogeneous_camera_points.T).T # Go to the image coordinate system
+    projected_points = (homogeneous_projected_points/homogeneous_projected_points[:, 2].reshape(-1,1))[:, :2] # Divide by z coordinates to have inhomogeneous points
+    rounded_projected_points = np.around(projected_points).astype(int) # We round them to quantize them into pixels
+    filtered_projected_points, filtered_arrays = filter_points_not_in_camera(rounded_projected_points, image_shape, arrays_to_filter)
+    
+    return filtered_projected_points, filtered_arrays
+
 
 def put_semantic_color_on_image(filtered_projected_points, filtered_semantic_labels, filtered_z_cameras, image, color_map):
     '''
@@ -109,6 +150,7 @@ def put_semantic_color_on_image(filtered_projected_points, filtered_semantic_lab
 
     return image_with_semantic
 
+
 def main():
 
     FILENAME = "./data/demo.p"
@@ -119,18 +161,8 @@ def main():
     color_map = data["color_map"]
     image = data["image_2"]
     world_points = data["velodyne"][:, :3] #We don't need reflectance
-    
-    homogeneous_world_points = np.hstack((world_points, np.ones(world_points.shape[0]).reshape(-1, 1))) #Add a column of 1 to have homogeneous points
 
-    homogeneous_camera_points = (extrinsic@homogeneous_world_points.T).T # Go to the camera coordinate system
-    filtered_homogeneous_camera_points, filtered_semantic_labels = filter_points_behind_camera(homogeneous_camera_points, semantic_labels)
-    z_cameras = filtered_homogeneous_camera_points[:, 2]/filtered_homogeneous_camera_points[:, 3] # Use to know which point to keep when two are on the same pixel in the image after projection 
-
-    homogeneous_projected_points = (K@filtered_homogeneous_camera_points.T).T # Go to the image coordinate system
-    projected_points = (homogeneous_projected_points/homogeneous_projected_points[:, 2].reshape(-1,1))[:, :2] # Divide by z coordinates to have inhomogeneous points
-    rounded_projected_points = np.around(projected_points).astype(int) # We round them to quantize them into pixels
-    filtered_projected_points, filtered_semantic_labels, filtered_z_cameras = filter_points_not_in_camera(rounded_projected_points, image.shape, z_cameras, filtered_semantic_labels)
-
+    filtered_projected_points, [filtered_semantic_labels, filtered_z_cameras] = compute_projected_points(world_points, K, extrinsic, image.shape, [semantic_labels])
 
     image_with_semantic = put_semantic_color_on_image(filtered_projected_points, filtered_semantic_labels, filtered_z_cameras, image, color_map)
     plt.imshow(image_with_semantic)
