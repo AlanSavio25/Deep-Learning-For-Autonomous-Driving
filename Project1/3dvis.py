@@ -30,14 +30,18 @@ class Visualizer():
                                    [5,1],[5,4],[5,6],
                                    [7,3],[7,4],[7,6]])
 
-    def update(self, points):
+    def update(self, points, sem_labels, color_map):
         '''
         :param points: point cloud data
                         shape (N, 3)          
         Task 2: Change this function such that each point
         is colored depending on its semantic label
         '''
-        self.sem_vis.set_data(points, size=3)
+        points_color_bgr = [color_map[sem_label[0]] for sem_label in sem_labels]
+        points_color_rgb = np.array(points_color_bgr)
+        points_color_rgb[:,[0, 2]] = points_color_rgb[:,[2, 0]] # Swap blue and red columns
+        points_color_rgb_normalized = points_color_rgb/255 # Normalize in range [0-1]
+        self.sem_vis.set_data(points, size=3, face_color=points_color_rgb_normalized)
     
     def update_boxes(self, corners):
         '''
@@ -66,7 +70,7 @@ class Visualizer():
 if __name__ == '__main__':
     data = load_data('data/demo.p') # Change to data.p for your final submission 
     visualizer = Visualizer()
-    visualizer.update(data['velodyne'][:,:3])
+    visualizer.update(data['velodyne'][:,:3], data["sem_label"], data["color_map"])
     '''
     Task 2: Compute all bounding box corners from given
     annotations. You can visualize the bounding boxes using
