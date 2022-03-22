@@ -155,30 +155,34 @@ def put_semantic_color_on_image(filtered_projected_points, filtered_semantic_lab
 
     return image_with_semantic
 
-def main():
+def compute_world_bbox_corners(bboxes_info, cam_to_velo):
+    '''
+    Compute the 8 corners of every bounding boxes in the world coordinate system.
 
-    FILENAME = "./data/demo.p"
-    data = load_data(FILENAME)
-    K = data["P_rect_20"] #Intrinsic matrix, rectified (last column not 0), 3x4
-    extrinsic = data["T_cam2_velo"]
-    semantic_labels = data["sem_label"]
-    color_map = data["color_map"]
-    image = data["image_2"]
-    world_points = data["velodyne"][:, :3] #We don't need reflectance
+    Parameters
+    ----------
+    bboxes_info : np.array(N, 7)
+        Array containing the height, width, length, x, y, z coordinates of center of the bottom face and 
+        rotation around y-axis of every bounding-boxes.
+    cam_to_velo : np.array(4, 4)
+        The extrinsic parameters from the camera to the world coordinate system.
 
-    
-    filtered_projected_points, [filtered_semantic_labels, filtered_z_cameras] = compute_projected_points(world_points, K, extrinsic, image.shape, [semantic_labels])
-
-    image_with_semantic = put_semantic_color_on_image(filtered_projected_points, filtered_semantic_labels, filtered_z_cameras, image, color_map)
-    
-    #Part 2.2    
-    cam0_to_velo = np.linalg.inv(data["T_cam0_velo"])
-
-    bboxes_info = np.array(data["objects"])[:, 8:15].astype(float) # We only keep the dimensions, location and rotation y
-
+    Return
+    ----------
+    bboxes_corners_world: np.array(N, 8)
+        The 8 corners of every bounding boxes in the world coordinate system with the following order:
+        
+             1 -------- 0
+           /|         /|
+          2 -------- 3 .
+          | |        | |
+          . 5 -------- 4
+          |/         |/
+          6 -------- 7
+    '''
     bboxes_corners_bbox_coordinates = np.ones((bboxes_info.shape[0], 8, 4)) # 8 corners of each bbox with 4 for homogeneous coordinates
-    bboxes_projected_cam2 = []
-
+    bboxes_corners_world = []
+    
     for i, bbox_info in enumerate(bboxes_info):
         bbox_x_center = bbox_info[3] 
         bbox_y_center = bbox_info[4]
@@ -189,86 +193,102 @@ def main():
         bbox_length = bbox_info[2]
 
         bbox_center = np.array([bbox_x_center, bbox_y_center-bbox_height/2, bbox_z_center])
+        bbox_y_rotation = bbox_info[6]+math.pi/2
 
-
-        bbox_y_rotation = bbox_info[6]
-        #bbox_y_rotation = math.pi/2
-
-        print(f"Rotation in gradients {bbox_y_rotation} = {bbox_y_rotation*180/math.pi} degrees")
-
+        #Compute every corners in the bbox coordinate system
         bboxes_corners_bbox_coordinates[i][0][0] = bbox_width/2
-        bboxes_corners_bbox_coordinates[i][0][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][0][1] = - bbox_height/2
         bboxes_corners_bbox_coordinates[i][0][2] = bbox_length/2
 
         bboxes_corners_bbox_coordinates[i][1][0] = - bbox_width/2
-        bboxes_corners_bbox_coordinates[i][1][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][1][1] = - bbox_height/2
         bboxes_corners_bbox_coordinates[i][1][2] = bbox_length/2
 
         bboxes_corners_bbox_coordinates[i][2][0] = - bbox_width/2
-        bboxes_corners_bbox_coordinates[i][2][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][2][1] = - bbox_height/2
         bboxes_corners_bbox_coordinates[i][2][2] = - bbox_length/2
 
         bboxes_corners_bbox_coordinates[i][3][0] = bbox_width/2
-        bboxes_corners_bbox_coordinates[i][3][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][3][1] = - bbox_height/2
         bboxes_corners_bbox_coordinates[i][3][2] = - bbox_length/2
 
         bboxes_corners_bbox_coordinates[i][4][0] = bbox_width/2
-        bboxes_corners_bbox_coordinates[i][4][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][4][1] = bbox_height/2
         bboxes_corners_bbox_coordinates[i][4][2] = bbox_length/2
 
         bboxes_corners_bbox_coordinates[i][5][0] = - bbox_width/2
-        bboxes_corners_bbox_coordinates[i][5][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][5][1] = bbox_height/2
         bboxes_corners_bbox_coordinates[i][5][2] = bbox_length/2
 
         bboxes_corners_bbox_coordinates[i][6][0] = - bbox_width/2
-        bboxes_corners_bbox_coordinates[i][6][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][6][1] = bbox_height/2
         bboxes_corners_bbox_coordinates[i][6][2] = - bbox_length/2
 
         bboxes_corners_bbox_coordinates[i][7][0] = bbox_width/2
-        bboxes_corners_bbox_coordinates[i][7][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][7][1] = bbox_height/2
         bboxes_corners_bbox_coordinates[i][7][2] = - bbox_length/2
         
-        #print(bboxes_corners_bbox_coordinates[i])
-
         Ry = np.array([[math.cos(bbox_y_rotation),  0,  math.sin(bbox_y_rotation)],
                        [0,                          1,                          0],
                        [-math.sin(bbox_y_rotation), 0, math.cos(bbox_y_rotation)]])
         
-        """
-        Rx = np.array([[1,  0,  0],
-                       [0, math.cos(bbox_y_rotation), -math.sin(bbox_y_rotation)],
-                       [0, math.sin(bbox_y_rotation), math.cos(bbox_y_rotation)]])
-        
-        Rz = np.array([[math.cos(bbox_y_rotation),  -math.sin(bbox_y_rotation),  0],
-                       [math.sin(bbox_y_rotation), math.cos(bbox_y_rotation), 0],
-                       [0, 0, 1]])
-        """
-        
-        #Ry = np.eye(3)
-        #t = Ry @ bbox_center
         t = bbox_center # We don't apply the rotation to it since its based on its center
-        #t = np.array([0, 0, 0])
         bbox_to_cam0 = np.vstack((np.hstack((Ry, t.reshape(-1, 1))), [0, 0, 0, 1]))
 
         bbox_corners_cam0 = (bbox_to_cam0@bboxes_corners_bbox_coordinates[i].T).T
-
-        #print(bbox_corners_cam0)
-        bbox_corners_velo = (cam0_to_velo@bbox_corners_cam0.T).T[:, :3]
-
-        bbox_corners_cam2, _ = compute_projected_points(bbox_corners_velo, K, extrinsic, image.shape, filter_points_outside_camera=False)
-        bboxes_projected_cam2.append(bbox_corners_cam2)
+        bbox_corners_velo = (cam_to_velo@bbox_corners_cam0.T).T[:, :3]
+        bboxes_corners_world.append(bbox_corners_velo)
     
-    #Draw the 12 lines of the bounding box:
+    return bboxes_corners_world
+
+def draw_bboxes(bboxes_projected, color_map, semantics=[10]):
+    '''
+    Draw the 12 lines of every bounding boxes:
+
+    Parameters
+    ----------
+    bboxes_projected : np.array(N, 8, 2)
+        The projected bounding boxes given by the 2D locations of their 8 corners
+    color_map : dict
+        Dictionnary mapping semantic to color
+    semantics: optional, array(N) or array(1)
+        The semantic number corresponding to every bounding boxes or an array with only one semantic
+        if all the bounding boxes are of the same kind. By default, color every boxes in blue (cars)
+    '''
+
     line_indices = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4), (0, 4), (1, 5), (2, 6), (3, 7)]
-    for bbox in bboxes_projected_cam2:
+    for i, bbox in enumerate(bboxes_projected):
         for i1, i2 in line_indices:
             if i1 < len(bbox) and i2 < len(bbox):
                 x = [bbox[i1][0], bbox[i2][0]]
                 y = [bbox[i1][1], bbox[i2][1]]
-                bgr = color_map[10] # 10 stands for car
+                bgr = color_map[semantics[(0 if len(semantics)==1 else i)]] # 10 stands for car
                 color = (bgr[2]/255, bgr[1]/255, bgr[0]/255)
                 plt.plot(x, y, color=color, linewidth=1)
 
+def main():
+
+    FILENAME = "./data/data.p"
+
+    #Part 2.1
+    data = load_data(FILENAME)
+    K = data["P_rect_20"] #Intrinsic matrix, rectified (last column not 0), 3x4
+    extrinsic = data["T_cam2_velo"]
+    semantic_labels = data["sem_label"]
+    color_map = data["color_map"]
+    image = data["image_2"]
+    world_points = data["velodyne"][:, :3] #We don't need reflectance
+
+    filtered_projected_points, [filtered_semantic_labels, filtered_z_cameras] = compute_projected_points(world_points, K, extrinsic, image.shape, [semantic_labels])
+    image_with_semantic = put_semantic_color_on_image(filtered_projected_points, filtered_semantic_labels, filtered_z_cameras, image, color_map)
+    
+    #Part 2.2    
+    cam0_to_velo = np.linalg.inv(data["T_cam0_velo"])
+    bboxes_info = np.array(data["objects"])[:, 8:15].astype(float) # We only keep the dimensions, location and rotation y
+    bboxes_corners_world = compute_world_bbox_corners(bboxes_info, cam0_to_velo)
+    bboxes_projected_cam2 = [compute_projected_points(bbox_corners_world, K, extrinsic, image.shape, filter_points_outside_camera=False)[0] for bbox_corners_world in bboxes_corners_world]
+    
+    draw_bboxes(bboxes_projected_cam2, color_map)
     plt.imshow(image_with_semantic)
     plt.show()
 
