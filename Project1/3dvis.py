@@ -7,6 +7,8 @@ from vispy.scene import visuals, SceneCanvas
 import numpy as np
 import os
 from load_data import load_data
+from task2 import compute_world_bbox_corners
+
 
 class Visualizer():
     def __init__(self):
@@ -68,14 +70,19 @@ class Visualizer():
                               color=[0,1,0,1])
 
 if __name__ == '__main__':
-    data = load_data('data/demo.p') # Change to data.p for your final submission 
+    data = load_data('data/data.p') # Change to data.p for your final submission 
     visualizer = Visualizer()
     visualizer.update(data['velodyne'][:,:3], data["sem_label"], data["color_map"])
+
     '''
     Task 2: Compute all bounding box corners from given
     annotations. You can visualize the bounding boxes using
     visualizer.update_boxes(corners)
     '''
+    cam0_to_velo = np.linalg.inv(data["T_cam0_velo"])
+    bboxes_info = np.array(data["objects"])[:, 8:15].astype(float) # We only keep the dimensions, location and rotation y
+    corners = compute_world_bbox_corners(bboxes_info, cam0_to_velo)
+    visualizer.update_boxes(corners)
     vispy.app.run()
 
 
