@@ -59,8 +59,9 @@ def main():
     Num_Channels = 64
     angular_resolution = (vertical_max - vertical_min) / Num_Channels
     
-    four_colors = np.array([[255,0,0], [0,0,255], [0,255,0], [250,50,50]])
+    four_colors = np.array([[255,0,0], [0,0,255], [0,255,0], [255,255,0]])
     channel_ids = (elevation_angles - vertical_min) // angular_resolution
+    channel_ids[channel_ids == Num_Channels] = Num_Channels - 1 # Replaces the 64.0 value to 63.0. In most cases, only one point is affected.
     color_ids = np.mod(channel_ids, 4).astype(int)
     colors = four_colors[color_ids]
 
