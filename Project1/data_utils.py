@@ -61,13 +61,13 @@ def calib_velo2cam(filepath):
 #         get only Projection(P : 3x4) matrix is enough
 #     but if your image is 'distorted image'(not rectified image) :
 #         you need undistortion step using distortion coefficients(5 : D)
-#
+
 #     in this code, we'll get P matrix since we're using rectified image.
 #     in this code, we set filepath = 'yourpath/2011_09_26_drive_0029_sync/calib_cam_to_cam.txt' and mode = '02'
 #     """
 #     with open(filepath, "r") as f:
 #         file = f.readlines()
-#
+
 #         for line in file:
 #             (key, val) = line.split(':', 1)
 #             if key == ('P_rect_' + mode):
@@ -97,7 +97,8 @@ def calib_cam2cam(filepath, mode):
                 P_ = P_.reshape(3, 4)
                 # erase 4th column ([0,0,0])
                 #P_ = P_[:3, :3]
-            if key == 'R_rect_00':
+            # if key == 'R_rect_00':
+            if key == ('R_rect_' + mode):
                 R_rect_00 = np.fromstring(val, sep=' ')
                 R_rect_00 = R_rect_00.reshape(3, 3)
                 R_rect_00_ = np.zeros((4,4))
@@ -117,7 +118,15 @@ def print_projection_plt(points, color, image):
 
     return cv2.cvtColor(hsv_image, cv2.COLOR_HSV2RGB)
 
+def print_projection_plt_camera(points, color, image):
+    """ project converted camera points into camera image """
 
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    for i in range(points.shape[1]):
+        cv2.circle(hsv_image, (np.int32(points[0][i]), np.int32(points[1][i])), 2, (int(color[i]), 255, 255), -1)
+
+    return cv2.cvtColor(hsv_image, cv2.COLOR_HSV2RGB)
 
 def compute_timestamps(timestamps_f, ind):
     # return timestamps of the the ind^th sample (line) in seconds
