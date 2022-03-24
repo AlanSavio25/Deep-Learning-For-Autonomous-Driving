@@ -273,7 +273,7 @@ def main():
     #Part 2.1
     data = load_data(FILENAME)
     K = data["P_rect_20"] #Intrinsic matrix, rectified (last column not 0), 3x4
-    extrinsic = data["T_cam2_velo"]
+    extrinsic = data["T_cam0_velo"]
     semantic_labels = data["sem_label"]
     color_map = data["color_map"]
     image = data["image_2"]

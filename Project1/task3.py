@@ -47,7 +47,7 @@ def main():
 
     data = load_data(FILENAME)
     K = data["P_rect_20"] #Intrinsic matrix, rectified (last column not 0), 3x4
-    extrinsic = data["T_cam2_velo"]
+    extrinsic = data["T_cam0_velo"]
 
     image = data["image_2"]
     world_points = data["velodyne"][:, :3] #We don't need reflectance
