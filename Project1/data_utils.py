@@ -61,13 +61,13 @@ def calib_velo2cam(filepath):
 #         get only Projection(P : 3x4) matrix is enough
 #     but if your image is 'distorted image'(not rectified image) :
 #         you need undistortion step using distortion coefficients(5 : D)
-
+#
 #     in this code, we'll get P matrix since we're using rectified image.
 #     in this code, we set filepath = 'yourpath/2011_09_26_drive_0029_sync/calib_cam_to_cam.txt' and mode = '02'
 #     """
 #     with open(filepath, "r") as f:
 #         file = f.readlines()
-
+#
 #         for line in file:
 #             (key, val) = line.split(':', 1)
 #             if key == ('P_rect_' + mode):
