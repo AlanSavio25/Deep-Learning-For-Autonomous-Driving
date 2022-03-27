@@ -268,7 +268,7 @@ def draw_bboxes(bboxes_projected, color_map, semantics=[10]):
 
 def main():
 
-    FILENAME = "./data/data.p"
+    FILENAME = "../data/data.p"
 
     #Part 2.1
     data = load_data(FILENAME)

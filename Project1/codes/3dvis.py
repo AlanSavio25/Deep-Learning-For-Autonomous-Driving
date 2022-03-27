@@ -5,10 +5,74 @@
 import vispy
 from vispy.scene import visuals, SceneCanvas
 import numpy as np
-import os
+import math
 from load_data import load_data
-from task2 import compute_world_bbox_corners
+#from task2 import compute_world_bbox_corners
 
+def compute_world_bbox_corners(bboxes_info, cam_to_velo):
+    '''
+    This is a copy from the method with same name in task2
+    '''
+    bboxes_corners_bbox_coordinates = np.ones((bboxes_info.shape[0], 8, 4)) # 8 corners of each bbox with size 4 for homogeneous coordinates
+    bboxes_corners_world = []
+    
+    for i, bbox_info in enumerate(bboxes_info):
+        bbox_x_center = bbox_info[3] 
+        bbox_y_bottom = bbox_info[4]
+        bbox_z_center = bbox_info[5]
+
+        bbox_height = bbox_info[0]
+        bbox_width = bbox_info[1]
+        bbox_length = bbox_info[2]
+
+        bbox_center = np.array([bbox_x_center, bbox_y_bottom-bbox_height/2, bbox_z_center])
+        bbox_y_rotation = bbox_info[6]
+
+        #Compute every corners in the bbox coordinate system
+        bboxes_corners_bbox_coordinates[i][0][0] = bbox_length/2
+        bboxes_corners_bbox_coordinates[i][0][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][0][2] = bbox_width/2
+
+        bboxes_corners_bbox_coordinates[i][1][0] = - bbox_length/2
+        bboxes_corners_bbox_coordinates[i][1][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][1][2] = bbox_width/2
+
+        bboxes_corners_bbox_coordinates[i][2][0] = - bbox_length/2
+        bboxes_corners_bbox_coordinates[i][2][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][2][2] = - bbox_width/2
+
+        bboxes_corners_bbox_coordinates[i][3][0] = bbox_length/2
+        bboxes_corners_bbox_coordinates[i][3][1] = - bbox_height/2
+        bboxes_corners_bbox_coordinates[i][3][2] = - bbox_width/2
+
+        bboxes_corners_bbox_coordinates[i][4][0] = bbox_length/2
+        bboxes_corners_bbox_coordinates[i][4][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][4][2] = bbox_width/2
+
+        bboxes_corners_bbox_coordinates[i][5][0] = - bbox_length/2
+        bboxes_corners_bbox_coordinates[i][5][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][5][2] = bbox_width/2
+
+        bboxes_corners_bbox_coordinates[i][6][0] = - bbox_length/2
+        bboxes_corners_bbox_coordinates[i][6][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][6][2] = - bbox_width/2
+
+        bboxes_corners_bbox_coordinates[i][7][0] = bbox_length/2
+        bboxes_corners_bbox_coordinates[i][7][1] = bbox_height/2
+        bboxes_corners_bbox_coordinates[i][7][2] = - bbox_width/2
+        
+        Ry = np.array([[math.cos(bbox_y_rotation),  0,  math.sin(bbox_y_rotation)],
+                       [0,                          1,                          0],
+                       [-math.sin(bbox_y_rotation), 0, math.cos(bbox_y_rotation)]])
+        
+        t = bbox_center # We don't apply the rotation to it since its based on its center
+        bbox_to_cam0 = np.vstack((np.hstack((Ry, t.reshape(-1, 1))), [0, 0, 0, 1]))
+
+        bbox_corners_cam0 = (bbox_to_cam0@bboxes_corners_bbox_coordinates[i].T).T
+        bbox_corners_velo = (cam_to_velo@bbox_corners_cam0.T).T[:, :3]
+        bboxes_corners_world.append(bbox_corners_velo)
+    
+    return np.array(bboxes_corners_world)
 
 class Visualizer():
     def __init__(self):
@@ -70,7 +134,7 @@ class Visualizer():
                               color=[0,1,0,1])
 
 if __name__ == '__main__':
-    data = load_data('data/data.p') # Change to data.p for your final submission 
+    data = load_data('../data/data.p') # Change to data.p for your final submission 
     visualizer = Visualizer()
     visualizer.update(data['velodyne'][:,:3], data["sem_label"], data["color_map"])
 

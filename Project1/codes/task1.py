@@ -39,7 +39,7 @@ def show_bev(point_cloud, resolution):
 
 
 def main():
-    FILENAME = "./data/demo.p"
+    FILENAME = "../data/data.p"
     RESOLUTION = 0.2
 
     data = load_data(FILENAME)
