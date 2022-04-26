@@ -154,11 +154,38 @@ class ASPP(torch.nn.Module):
     def __init__(self, in_channels, out_channels, rates=(3, 6, 9)):
         super().__init__()
         # TODO: Implement ASPP properly instead of the following
-        self.conv_out = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
+        #self.conv_out = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
+
+        self.first = ASPPpart(in_channels, out_channels, kernel_size=1, stride=4, padding=0, dilation=1)
+        self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[0])
+        self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[1])
+        self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[2])
+        
+        self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1) #Used to have again out_channels
+
+        self.out_conv = ASPPpart(5*out_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
     def forward(self, x):
         # TODO: Implement ASPP properly instead of the following
-        out = self.conv_out(x)
+        #out = self.conv_out(x)
+        
+        N, C, H, W = x.shape
+        
+        first = self.first(x)
+        second = self.second(x)
+        third = self.third(x)
+        fourth = self.fourth(x)
+        
+        _, _, Hout, Wout = first.shape #Used to upsample average pooling to right size
+        globalAveragePooling = torch.nn.AvgPool2d(kernel_size = (H, W), stride=1, padding=0)
+        upsample_after_average = torch.nn.Upsample(scale = (Hout, Wout), mode='bilinear')
+        
+        fifth = upsample_after_average(self.conv_after_average(globalAveragePooling(x)))
+
+        concatenation = torch.stack([first, second, third, fourth, fifth], dim=1) #Concatenate the channels
+
+        out = self.out_conv(concatenation)
+
         return out
 
 
