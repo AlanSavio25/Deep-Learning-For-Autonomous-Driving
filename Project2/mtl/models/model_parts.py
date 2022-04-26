@@ -168,8 +168,10 @@ class ASPP(torch.nn.Module):
     def forward(self, x):
         # TODO: Implement ASPP properly instead of the following
         #out = self.conv_out(x)
-        
+
         N, C, H, W = x.shape
+
+        print(x.shape)
         
         first = self.first(x)
         second = self.second(x)
@@ -178,11 +180,14 @@ class ASPP(torch.nn.Module):
         
         _, _, Hout, Wout = first.shape #Used to upsample average pooling to right size
         globalAveragePooling = torch.nn.AvgPool2d(kernel_size = (H, W), stride=1, padding=0)
-        upsample_after_average = torch.nn.Upsample(scale = (Hout, Wout), mode='bilinear')
         
-        fifth = upsample_after_average(self.conv_after_average(globalAveragePooling(x)))
+        fifth = F.interpolate(self.conv_after_average(globalAveragePooling(x)), size=(Hout, Wout), mode='bilinear', align_corners=False)
+        print(fifth.shape)
+
 
         concatenation = torch.stack([first, second, third, fourth, fifth], dim=1) #Concatenate the channels
+
+        print(concatenation.shape)
 
         out = self.out_conv(concatenation)
 
