@@ -140,14 +140,23 @@ class DecoderDeeplabV3p(torch.nn.Module):
         """
         # TODO: Implement a proper decoder with skip connections instead of the following; keep returned
         #       tensors in the same order and of the same shape.
+        print("Inside Decoder")
+
         features_4x = F.interpolate(
             features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
         )
         features_encoder = self.encoder_convolution(features_skip_4x)
 
+        print(f"Before concatenation, shape of features from ASPP after upsampling = {features_4x.shape}")
+        print(f"Before concatenation, shape of features from encoder = {features_encoder.shape}")
+        
+
         concatenation = torch.stack([features_4x, features_encoder], dim=1)# Stack along channels
+        print(f"After concatenation, shape = {concatenation.shape}")
 
         predictions_4x = self.features_to_predictions(concatenation)
+        print(f"Final shape = {predictions_4x.shape}")
+
         return predictions_4x, features_4x
 
 
@@ -171,6 +180,8 @@ class ASPP(torch.nn.Module):
         self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[1])
         self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[2])
         
+
+        # Do we need the ReLU from ASPP for these 2?
         self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1) #Used to have again out_channels
 
         self.out_conv = ASPPpart(5*out_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
@@ -180,7 +191,7 @@ class ASPP(torch.nn.Module):
         #out = self.conv_out(x)
 
         N, C, H, W = x.shape
-
+        print("Inside ASPP")
         print(f"Intitial shape = {x.shape}")
         
         first = self.first(x)
