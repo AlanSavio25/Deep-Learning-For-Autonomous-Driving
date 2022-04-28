@@ -123,7 +123,13 @@ class DecoderDeeplabV3p(torch.nn.Module):
         super(DecoderDeeplabV3p, self).__init__()
 
         # TODO: Implement a proper decoder with skip connections instead of the following
-        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=1, stride=1)
+        #self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=1, stride=1)
+        
+        ENCODER_OUTPUT_CHANNELS = skip_4x_ch/4 # Not clearly stated in the paper (Only that it should be lower)
+        self.encoder_convolution = torch.nn.Conv2d(skip_4x_ch, ENCODER_OUTPUT_CHANNELS, kernel_size=1, stride=1, padding=0, dilation=1, bias=False)
+        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=False) #Only one onvolution, might need to add some more (in paper: "a few")
+
+
 
     def forward(self, features_bottleneck, features_skip_4x):
         """
@@ -137,7 +143,11 @@ class DecoderDeeplabV3p(torch.nn.Module):
         features_4x = F.interpolate(
             features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
         )
-        predictions_4x = self.features_to_predictions(features_4x)
+        features_encoder = self.encoder_convolution(features_skip_4x)
+
+        concatenation = torch.stack([features_4x, features_encoder], dim=1)# Stack along channels
+
+        predictions_4x = self.features_to_predictions(concatenation)
         return predictions_4x, features_4x
 
 
@@ -171,7 +181,7 @@ class ASPP(torch.nn.Module):
 
         N, C, H, W = x.shape
 
-        print(x.shape)
+        print(f"Intitial shape = {x.shape}")
         
         first = self.first(x)
         second = self.second(x)
@@ -182,12 +192,12 @@ class ASPP(torch.nn.Module):
         globalAveragePooling = torch.nn.AvgPool2d(kernel_size = (H, W), stride=1, padding=0)
         
         fifth = F.interpolate(self.conv_after_average(globalAveragePooling(x)), size=(Hout, Wout), mode='bilinear', align_corners=False)
-        print(fifth.shape)
+        print(f"Shape of fifth layer (average pooling) = {fifth.shape}")
 
 
         concatenation = torch.stack([first, second, third, fourth, fifth], dim=1) #Concatenate the channels
 
-        print(concatenation.shape)
+        print(f"Shape of concatenated maps = {concatenation.shape}")
 
         out = self.out_conv(concatenation)
 
