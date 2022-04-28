@@ -121,14 +121,10 @@ class Encoder(torch.nn.Module):
 class DecoderDeeplabV3p(torch.nn.Module):
     def __init__(self, bottleneck_ch, skip_4x_ch, num_out_ch):
         super(DecoderDeeplabV3p, self).__init__()
-
-        # TODO: Implement a proper decoder with skip connections instead of the following
-        #self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=1, stride=1)
         
         ENCODER_OUTPUT_CHANNELS = 32 #In paper, 48 gives slightly best result but they have more channels from ASPP
         self.encoder_convolution = torch.nn.Conv2d(skip_4x_ch, ENCODER_OUTPUT_CHANNELS, kernel_size=1, stride=1, padding=0, dilation=1, bias=False)
-        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=False) #Only one onvolution, might need to add some more (in paper: "a few")
-
+        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=False) #Only one convolution, might need to add some more (in paper: "a few")
 
 
     def forward(self, features_bottleneck, features_skip_4x):
@@ -138,24 +134,13 @@ class DecoderDeeplabV3p(torch.nn.Module):
         :param features_skip_4x: features of encoder of scale == 4
         :return: features with 256 channels and the final tensor of predictions
         """
-        # TODO: Implement a proper decoder with skip connections instead of the following; keep returned
-        #       tensors in the same order and of the same shape.
-        print("Inside Decoder")
-
         features_4x = F.interpolate(
             features_bottleneck, size=features_skip_4x.shape[2:], mode='bilinear', align_corners=False
         )
-        features_encoder = self.encoder_convolution(features_skip_4x)
+        features_encoder = self.encoder_convolution(features_skip_4x)        
 
-        print(f"Before concatenation, shape of features from ASPP after upsampling = {features_4x.shape}")
-        print(f"Before concatenation, shape of features from encoder = {features_encoder.shape}")
-        
-
-        concatenation = torch.stack([features_4x, features_encoder], dim=1)# Stack along channels
-        print(f"After concatenation, shape = {concatenation.shape}")
-
+        concatenation = torch.cat([features_4x, features_encoder], dim=1)# Stack along channels
         predictions_4x = self.features_to_predictions(concatenation)
-        print(f"Final shape = {predictions_4x.shape}")
 
         return predictions_4x, features_4x
 
@@ -172,13 +157,11 @@ class ASPPpart(torch.nn.Sequential):
 class ASPP(torch.nn.Module):
     def __init__(self, in_channels, out_channels, rates=(3, 6, 9)):
         super().__init__()
-        # TODO: Implement ASPP properly instead of the following
-        #self.conv_out = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
         self.first = ASPPpart(in_channels, out_channels, kernel_size=1, stride=4, padding=0, dilation=1)
-        self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[0])
-        self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[1])
-        self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[2])
+        self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[0], dilation=rates[0])
+        self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[1], dilation=rates[1])
+        self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[2], dilation=rates[2])
         
         self.globalAveragePooling = torch.nn.AdaptiveAvgPool2d(1)
         self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1) #Used to have again out_channels
@@ -186,11 +169,6 @@ class ASPP(torch.nn.Module):
         self.out_conv = ASPPpart(5*out_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
     def forward(self, x):
-        # TODO: Implement ASPP properly instead of the following
-        #out = self.conv_out(x)
-
-        print("Inside ASPP")
-        print(f"Intitial shape = {x.shape}")
         
         first = self.first(x)
         second = self.second(x)
@@ -200,12 +178,8 @@ class ASPP(torch.nn.Module):
         _, _, Hout, Wout = first.shape #Used to upsample average pooling to right size
         
         fifth = F.interpolate(self.conv_after_average(self.globalAveragePooling(x)), size=(Hout, Wout), mode='bilinear', align_corners=False)
-        print(f"Shape of fifth layer (average pooling) = {fifth.shape}")
-
 
         concatenation = torch.cat([first, second, third, fourth, fifth], dim=1) #Concatenate the channels
-
-        print(f"Shape of concatenated maps = {concatenation.shape}")
 
         out = self.out_conv(concatenation)
 

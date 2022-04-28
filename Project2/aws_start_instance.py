@@ -11,10 +11,11 @@ AWS = 'aws'   # path to `aws` CLI executable
 PERMISSION_FILE_PATH = '~/.ssh/dlad-aws.pem'
 AMI = 'ami-07f83f2fb8212ce3b' # Deep Learning AMI (Ubuntu 18.04) Version 41.0
 INSTANCE_TYPE = 'p2.xlarge'
+#INSTANCE_TYPE = 'm6i.xlarge'
 VOLUME_TYPE = 'gp2'
 REGION = 'us-east-2'
 NON_ROOT = 'ubuntu'
-TIMEOUT = 24  # in hours
+TIMEOUT = 48  # in hours
 RSYNC_EXCLUDE = "--exclude 'wandb/' --exclude 'doc/'"
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 
