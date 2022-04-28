@@ -125,7 +125,7 @@ class DecoderDeeplabV3p(torch.nn.Module):
         # TODO: Implement a proper decoder with skip connections instead of the following
         #self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch, num_out_ch, kernel_size=1, stride=1)
         
-        ENCODER_OUTPUT_CHANNELS = skip_4x_ch/4 # Not clearly stated in the paper (Only that it should be lower)
+        ENCODER_OUTPUT_CHANNELS = 32 #In paper, 48 gives slightly best result but they have more channels from ASPP
         self.encoder_convolution = torch.nn.Conv2d(skip_4x_ch, ENCODER_OUTPUT_CHANNELS, kernel_size=1, stride=1, padding=0, dilation=1, bias=False)
         self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=False) #Only one onvolution, might need to add some more (in paper: "a few")
 
@@ -180,8 +180,7 @@ class ASPP(torch.nn.Module):
         self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[1])
         self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=1, dilation=rates[2])
         
-
-        # Do we need the ReLU from ASPP for these 2?
+        self.globalAveragePooling = torch.nn.AdaptiveAvgPool2d(1)
         self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1) #Used to have again out_channels
 
         self.out_conv = ASPPpart(5*out_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
@@ -190,7 +189,6 @@ class ASPP(torch.nn.Module):
         # TODO: Implement ASPP properly instead of the following
         #out = self.conv_out(x)
 
-        N, C, H, W = x.shape
         print("Inside ASPP")
         print(f"Intitial shape = {x.shape}")
         
@@ -200,13 +198,12 @@ class ASPP(torch.nn.Module):
         fourth = self.fourth(x)
         
         _, _, Hout, Wout = first.shape #Used to upsample average pooling to right size
-        globalAveragePooling = torch.nn.AvgPool2d(kernel_size = (H, W), stride=1, padding=0)
         
-        fifth = F.interpolate(self.conv_after_average(globalAveragePooling(x)), size=(Hout, Wout), mode='bilinear', align_corners=False)
+        fifth = F.interpolate(self.conv_after_average(self.globalAveragePooling(x)), size=(Hout, Wout), mode='bilinear', align_corners=False)
         print(f"Shape of fifth layer (average pooling) = {fifth.shape}")
 
 
-        concatenation = torch.stack([first, second, third, fourth, fifth], dim=1) #Concatenate the channels
+        concatenation = torch.cat([first, second, third, fourth, fifth], dim=1) #Concatenate the channels
 
         print(f"Shape of concatenated maps = {concatenation.shape}")
 
