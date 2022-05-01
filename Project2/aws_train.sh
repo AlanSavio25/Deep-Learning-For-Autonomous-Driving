@@ -25,8 +25,8 @@ python -m mtl.scripts.train \
   --log_dir /home/ubuntu/results/ \
   --dataset_root /home/ubuntu/miniscapes/ \
   --name Default \
-  --optimizer sgd \
-  --optimizer_lr 0.01
+  --optimizer adam \
+  --optimizer_lr 0.0001
   # ... you can pass further arguments as specified in utils/config.py
   # DO NOT FORGET ADDING BACKSLASHES for additional flags (except the last one)
 
