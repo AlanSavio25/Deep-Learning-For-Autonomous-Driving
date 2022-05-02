@@ -122,9 +122,9 @@ class DecoderDeeplabV3p(torch.nn.Module):
     def __init__(self, bottleneck_ch, skip_4x_ch, num_out_ch):
         super(DecoderDeeplabV3p, self).__init__()
         
-        ENCODER_OUTPUT_CHANNELS = 32 #In paper, 48 gives slightly best result but they have more channels from ASPP
-        self.encoder_convolution = torch.nn.Conv2d(skip_4x_ch, ENCODER_OUTPUT_CHANNELS, kernel_size=1, stride=1, padding=0, dilation=1, bias=False)
-        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=False) #Only one convolution, might need to add some more (in paper: "a few")
+        ENCODER_OUTPUT_CHANNELS = 48 #In paper, 48 gives the best result
+        self.encoder_convolution = torch.nn.Conv2d(skip_4x_ch, ENCODER_OUTPUT_CHANNELS, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.features_to_predictions = torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1) #Only one convolution, might need to add some more (in paper: "a few")
 
 
     def forward(self, features_bottleneck, features_skip_4x):
@@ -139,7 +139,7 @@ class DecoderDeeplabV3p(torch.nn.Module):
         )
         features_encoder = self.encoder_convolution(features_skip_4x)        
 
-        concatenation = torch.cat([features_4x, features_encoder], dim=1)# Stack along channels
+        concatenation = torch.cat([features_4x, features_encoder], dim=1) #Stack along channels
         predictions_4x = self.features_to_predictions(concatenation)
 
         return predictions_4x, features_4x
@@ -158,10 +158,10 @@ class ASPP(torch.nn.Module):
     def __init__(self, in_channels, out_channels, rates=(3, 6, 9)):
         super().__init__()
 
-        self.first = ASPPpart(in_channels, out_channels, kernel_size=1, stride=4, padding=0, dilation=1)
-        self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[0], dilation=rates[0])
-        self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[1], dilation=rates[1])
-        self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[2], dilation=rates[2])
+        self.first = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[0], dilation=rates[0])
+        self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[1], dilation=rates[1])
+        self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[2], dilation=rates[2])
         
         self.globalAveragePooling = torch.nn.AdaptiveAvgPool2d(1)
         self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1) #Used to have again out_channels
