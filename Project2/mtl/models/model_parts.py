@@ -128,11 +128,10 @@ class DecoderDeeplabV3p(torch.nn.Module):
             torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, 256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
             torch.nn.BatchNorm2d(256),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(256, num_out_ch, kernel_size=3, stride=1, padding=1,
-                            dilation=1,
-                            bias=False),
-            torch.nn.BatchNorm2d(num_out_ch),
-            torch.nn.ReLU()
+            torch.nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=True),
         )
 
 
@@ -171,9 +170,9 @@ class ASPP(torch.nn.Module):
         self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[0], dilation=rates[0])
         self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[1], dilation=rates[1])
         self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[2], dilation=rates[2])
-        
+
         self.globalAveragePooling = torch.nn.AdaptiveAvgPool2d(1)
-        self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1) #Used to have again out_channels
+        self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)  # Used to have again out_channels
 
         self.out_conv = ASPPpart(5*out_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
