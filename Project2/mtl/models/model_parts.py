@@ -166,10 +166,10 @@ class ASPP(torch.nn.Module):
     def __init__(self, in_channels, out_channels, rates=(3, 6, 9)):
         super().__init__()
 
-        self.first = ASPPpart(in_channels, out_channels, kernel_size=1, stride=4, padding=0, dilation=1)
-        self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[0], dilation=rates[0])
-        self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[1], dilation=rates[1])
-        self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=4, padding=rates[2], dilation=rates[2])
+        self.first = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.second = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[0], dilation=rates[0])
+        self.third = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[1], dilation=rates[1])
+        self.fourth = ASPPpart(in_channels, out_channels, kernel_size=3, stride=1, padding=rates[2], dilation=rates[2])
 
         self.globalAveragePooling = torch.nn.AdaptiveAvgPool2d(1)
         self.conv_after_average = ASPPpart(in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1)  # Used to have again out_channels
