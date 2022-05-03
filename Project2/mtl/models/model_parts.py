@@ -158,7 +158,7 @@ class DecoderDeeplabV3p(torch.nn.Module):
 
 class DecoderNoSkipConnection(torch.nn.Module):
     def __init__(self, num_in_ch, num_out_ch):
-        super(DecoderDeeplabV3p, self).__init__()
+        super(DecoderNoSkipConnection, self).__init__()
         
         self.features_to_predictions = torch.nn.Sequential(
             torch.nn.Conv2d(num_in_ch, 256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
