@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from mtl.datasets.definitions import MOD_DEPTH, MOD_SEMSEG
 
 from mtl.models.model_parts import Encoder, get_encoder_channel_counts, ASPP, DecoderDeeplabV3p
 
@@ -8,8 +9,8 @@ class ModelBranchedArchitecture(torch.nn.Module):
         super().__init__()
         self.outputs_desc = outputs_desc
 
-        num_classes_semseg = outputs_desc.values()[0]
-        num_classes_depth = outputs_desc.values()[1] # Is 1 since we predict a 1D continuous value, but could be changed to a classification problem
+        num_classes_semseg = outputs_desc[MOD_SEMSEG]
+        num_classes_depth = outputs_desc[MOD_DEPTH] # Is 1 since we predict a 1D continuous value, but could be changed to a classification problem
 
         self.encoder = Encoder(
             cfg.model_encoder_name,
@@ -50,8 +51,7 @@ class ModelBranchedArchitecture(torch.nn.Module):
 
         out = {}
 
-        keys = self.outputs_desc.keys()
-        out[keys[0]] = prediction_semseg_1x # MOD_SEMSEG
-        out[keys[1]] = prediction_depth_1x # MOD_DEPTH
+        out[MOD_SEMSEG] = prediction_semseg_1x
+        out[MOD_DEPTH] = prediction_depth_1x
 
         return out
