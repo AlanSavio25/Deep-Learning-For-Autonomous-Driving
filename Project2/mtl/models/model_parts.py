@@ -153,6 +153,32 @@ class DecoderDeeplabV3p(torch.nn.Module):
 
         return predictions_4x, features_4x
 
+class DecoderNoSkipConnection(torch.nn.Module):
+    def __init__(self, num_in_ch, num_out_ch):
+        super(DecoderDeeplabV3p, self).__init__()
+        
+        self.features_to_predictions = torch.nn.Sequential(
+            torch.nn.Conv2d(num_in_ch, 256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=True),
+        )
+
+
+    def forward(self, features):
+        """
+        DeepLabV3+ style decoder
+        :param features: sum of features coming from previous 
+                         decoder and features after SelfAttention module, 4 times downsample
+        """
+
+        predictions_downsampled = self.features_to_predictions(features)
+
+        return predictions_downsampled
+
 
 class ASPPpart(torch.nn.Sequential):
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dilation):
