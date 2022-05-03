@@ -27,11 +27,11 @@ class ModelTaskDistillation(torch.nn.Module):
         self.first_decoder_semseg = DecoderDeeplabV3p(256, ch_out_encoder_4x, num_classes_semseg)
         self.first_decoder_depth = DecoderDeeplabV3p(256, ch_out_encoder_4x, num_classes_depth)
 
-        self.attention_semseg = SelfAttention(num_classes_semseg, num_classes_depth) # What should be outchannels?
-        self.attention_depth = SelfAttention(num_classes_depth, num_classes_semseg) # What should be outchannels?
+        self.attention_semseg = SelfAttention(256, 256) # What should be outchannels?
+        self.attention_depth = SelfAttention(256, 256) # What should be outchannels?
 
-        self.second_decoder_semseg = DecoderNoSkipConnection(num_classes_semseg, num_classes_semseg) # Should take input one layer before where 256 imput channels
-        self.second_decoder_depth = DecoderNoSkipConnection(num_classes_depth, num_classes_depth) # Should take input one layer before where 256 imput channels
+        self.second_decoder_semseg = DecoderNoSkipConnection(256, num_classes_semseg) # Should take input one layer before where 256 imput channels
+        self.second_decoder_depth = DecoderNoSkipConnection(256, num_classes_depth) # Should take input one layer before where 256 imput channels
 
 
     def forward(self, x):
@@ -50,16 +50,16 @@ class ModelTaskDistillation(torch.nn.Module):
         features_tasks_depth = self.aspp_depth(features_lowest)
 
         # Initial prediction after decoder #1 and #2
-        initial_predictions_semseg_4x, _ = self.first_decoder_semseg(features_tasks_semseg, features[4])
-        initial_predictions_depth_4x, _ = self.first_decoder_depth(features_tasks_depth, features[4])
+        initial_predictions_semseg_4x, _, initial_penultimate_semseg_4x = self.first_decoder_semseg(features_tasks_semseg, features[4])
+        initial_predictions_depth_4x, _, initial_penultimate_depth_4x = self.first_decoder_depth(features_tasks_depth, features[4])
         initial_prediction_semseg_1x = F.interpolate(initial_predictions_semseg_4x, size=input_resolution, mode='bilinear', align_corners=False)
         initial_prediction_depth_1x = F.interpolate(initial_predictions_depth_4x, size=input_resolution, mode='bilinear', align_corners=False)
 
-        after_attention_semseg = self.attention_semseg(initial_predictions_semseg_4x)
-        after_attention_depth = self.attention_depth(initial_predictions_depth_4x)
+        after_attention_semseg = self.attention_semseg(initial_penultimate_semseg_4x)
+        after_attention_depth = self.attention_depth(initial_penultimate_depth_4x)
 
-        sum_semseg = torch.add(initial_predictions_semseg_4x, after_attention_depth)
-        sum_depth = torch.add(initial_predictions_depth_4x, after_attention_semseg)
+        sum_semseg = torch.add(initial_penultimate_semseg_4x, after_attention_depth)
+        sum_depth = torch.add(initial_penultimate_depth_4x, after_attention_semseg)
 
         # Final prediction after decoder #3 and #4
         final_prediction_semseg_4x = self.second_decoder_semseg(sum_semseg)

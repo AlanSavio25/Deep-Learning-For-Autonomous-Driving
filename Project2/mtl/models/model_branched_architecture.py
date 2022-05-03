@@ -43,8 +43,8 @@ class ModelBranchedArchitecture(torch.nn.Module):
         features_tasks_semseg = self.aspp_semseg(features_lowest)
         features_tasks_depth = self.aspp_depth(features_lowest)
 
-        predictions_semseg_4x, _ = self.decoder_semseg(features_tasks_semseg, features[4])
-        predictions_depth_4x, _ = self.decoder_depth(features_tasks_depth, features[4])
+        predictions_semseg_4x, _, _ = self.decoder_semseg(features_tasks_semseg, features[4])
+        predictions_depth_4x, _, _ = self.decoder_depth(features_tasks_depth, features[4])
 
         prediction_semseg_1x = F.interpolate(predictions_semseg_4x, size=input_resolution, mode='bilinear', align_corners=False)
         prediction_depth_1x = F.interpolate(predictions_depth_4x, size=input_resolution, mode='bilinear', align_corners=False)

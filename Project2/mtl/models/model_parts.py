@@ -124,15 +124,16 @@ class DecoderDeeplabV3p(torch.nn.Module):
         
         ENCODER_OUTPUT_CHANNELS = 48 #In paper, 48 gives the best result
         self.encoder_convolution = torch.nn.Conv2d(skip_4x_ch, ENCODER_OUTPUT_CHANNELS, kernel_size=1, stride=1, padding=0, dilation=1)
-        self.features_to_predictions = torch.nn.Sequential(
+        self.features_to_penultimate = torch.nn.Sequential(
             torch.nn.Conv2d(bottleneck_ch+ENCODER_OUTPUT_CHANNELS, 256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
             torch.nn.BatchNorm2d(256),
             torch.nn.ReLU(),
             torch.nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False),
             torch.nn.BatchNorm2d(256),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(256, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=True),
         )
+        self.penultimate_to_final = torch.nn.Conv2d(256, num_out_ch, kernel_size=3, stride=1, padding=1, dilation=1, bias=True)
+
 
 
     def forward(self, features_bottleneck, features_skip_4x):
@@ -149,9 +150,11 @@ class DecoderDeeplabV3p(torch.nn.Module):
 
         concatenation = torch.cat([features_4x, features_encoder], dim=1) #Stack along channels
 
-        predictions_4x = self.features_to_predictions(concatenation)
+        penultimates_4x = self.features_to_penultimate(concatenation)
 
-        return predictions_4x, features_4x
+        predictions_4x = self.penultimate_to_final(penultimates_4x)
+
+        return predictions_4x, features_4x, penultimates_4x
 
 class DecoderNoSkipConnection(torch.nn.Module):
     def __init__(self, num_in_ch, num_out_ch):

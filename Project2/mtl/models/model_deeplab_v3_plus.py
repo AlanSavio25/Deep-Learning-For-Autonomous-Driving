@@ -37,7 +37,7 @@ class ModelDeepLabV3Plus(torch.nn.Module):
 
         features_tasks = self.aspp(features_lowest)
 
-        predictions_4x, _ = self.decoder(features_tasks, features[4])
+        predictions_4x, _, _ = self.decoder(features_tasks, features[4])
 
         predictions_1x = F.interpolate(predictions_4x, size=input_resolution, mode='bilinear', align_corners=False)
 
