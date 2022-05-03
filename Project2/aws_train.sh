@@ -26,7 +26,8 @@ python -m mtl.scripts.train \
   --dataset_root /home/ubuntu/miniscapes/ \
   --name Default \
   --optimizer adam \
-  --optimizer_lr 0.0001
+  --optimizer_lr 0.0001 \
+  --model_name branched
   # ... you can pass further arguments as specified in utils/config.py
   # DO NOT FORGET ADDING BACKSLASHES for additional flags (except the last one)
 

@@ -8,6 +8,9 @@ class ModelBranchedArchitecture(torch.nn.Module):
         super().__init__()
         self.outputs_desc = outputs_desc
 
+        num_classes_semseg = outputs_desc.values()[0]
+        num_classes_depth = outputs_desc.values()[1] # Is 1 since we predict a 1D continuous value, but could be changed to a classification problem
+
         self.encoder = Encoder(
             cfg.model_encoder_name,
             pretrained=True,
@@ -20,8 +23,8 @@ class ModelBranchedArchitecture(torch.nn.Module):
         self.aspp_depth = ASPP(ch_out_encoder_bottleneck, 256)
         self.aspp_semseg = ASPP(ch_out_encoder_bottleneck, 256)
 
-        self.decoder_semseg = DecoderDeeplabV3p(256, ch_out_encoder_4x, outputs_desc.values()[0])
-        self.decoder_depth = DecoderDeeplabV3p(256, ch_out_encoder_4x, outputs_desc.values()[1])
+        self.decoder_semseg = DecoderDeeplabV3p(256, ch_out_encoder_4x, num_classes_semseg)
+        self.decoder_depth = DecoderDeeplabV3p(256, ch_out_encoder_4x, num_classes_depth)
 
 
     def forward(self, x):
