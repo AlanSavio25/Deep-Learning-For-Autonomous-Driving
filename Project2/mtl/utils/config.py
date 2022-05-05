@@ -87,6 +87,8 @@ def command_line_parser():
         '--loss_weight_semseg', type=float, default=0.5, help='Weight of semantic segmentation loss')
     parser.add_argument(
         '--loss_weight_depth', type=float, default=0.5, help='Weight of depth estimation loss')
+    parser.add_argument(
+        '--loss_weight_contour', type=float, default=0.0, help='Weight of contour estimation loss')
 
     parser.add_argument(
         '--workers', type=int, default=16, help='Number of worker threads fetching training data')

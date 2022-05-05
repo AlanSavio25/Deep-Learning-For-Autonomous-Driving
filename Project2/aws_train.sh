@@ -24,10 +24,15 @@ cd /home/ubuntu/code/
 python -m mtl.scripts.train \
   --log_dir /home/ubuntu/results/ \
   --dataset_root /home/ubuntu/miniscapes/ \
-  --name Default \
+  --name WithContour \
   --optimizer adam \
   --optimizer_lr 0.0001 \
-  --model_name branched
+  --model_name task_distillation_with_contour \
+  --loss_weight_semseg 0.36 \
+  --loss_weight_depth 0.36 \
+  --loss_weight_contour 0.28
+
+  #task_distillation
   # ... you can pass further arguments as specified in utils/config.py
   # DO NOT FORGET ADDING BACKSLASHES for additional flags (except the last one)
 

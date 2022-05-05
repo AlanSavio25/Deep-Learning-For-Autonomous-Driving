@@ -29,13 +29,14 @@ class ModelTaskDistillationWithContour(torch.nn.Module):
         self.first_decoder_semseg = DecoderDeeplabV3p(256, ch_out_encoder_4x, num_classes_semseg)
         self.first_decoder_depth = DecoderDeeplabV3p(256, ch_out_encoder_4x, num_classes_depth)
         self.first_decoder_contour = DecoderDeeplabV3p(256, ch_out_encoder_4x, num_classes_contour)
+        self.output_decoder_contour_to_probability = torch.nn.Sigmoid() # Because each pixel must be between 0 (not an edge) and 1 (an edge) for BCE
 
-        self.attention_semseg = SelfAttention(256, 256) # What should be outchannels?
-        self.attention_depth = SelfAttention(256, 256) # What should be outchannels?
+        self.attention_semseg = SelfAttention(256, 256)
+        self.attention_depth = SelfAttention(256, 256)
         self.attention_contour = SelfAttention(256, 256)
 
-        self.second_decoder_semseg = DecoderNoSkipConnection(256, num_classes_semseg) # Should take input one layer before where 256 imput channels
-        self.second_decoder_depth = DecoderNoSkipConnection(256, num_classes_depth) # Should take input one layer before where 256 imput channels
+        self.second_decoder_semseg = DecoderNoSkipConnection(256, num_classes_semseg)
+        self.second_decoder_depth = DecoderNoSkipConnection(256, num_classes_depth)
 
 
     def forward(self, x):
@@ -54,7 +55,7 @@ class ModelTaskDistillationWithContour(torch.nn.Module):
         features_tasks_depth = self.aspp_depth(features_lowest)
         features_tasks_contour = self.aspp_contour(features_lowest)
 
-        # Initial prediction after decoder #1 and #2
+        # Initial prediction after decoder #1, #2 and #3
         initial_predictions_semseg_4x, _, initial_penultimate_semseg_4x = self.first_decoder_semseg(features_tasks_semseg, features[4])
         initial_predictions_depth_4x, _, initial_penultimate_depth_4x = self.first_decoder_depth(features_tasks_depth, features[4])
         initial_predictions_contour_4x, _, initial_penultimate_contour_4x = self.first_decoder_contour(features_tasks_contour, features[4])
@@ -62,6 +63,7 @@ class ModelTaskDistillationWithContour(torch.nn.Module):
         initial_prediction_semseg_1x = F.interpolate(initial_predictions_semseg_4x, size=input_resolution, mode='bilinear', align_corners=False)
         initial_prediction_depth_1x = F.interpolate(initial_predictions_depth_4x, size=input_resolution, mode='bilinear', align_corners=False)
         initial_prediction_contour_1x = F.interpolate(initial_predictions_contour_4x, size=input_resolution, mode='bilinear', align_corners=False)
+        initial_probabilities_contour_1x = self.output_decoder_contour_to_probability(initial_prediction_contour_1x)
 
         after_attention_semseg = self.attention_semseg(initial_penultimate_semseg_4x)
         after_attention_depth = self.attention_depth(initial_penultimate_depth_4x)
@@ -70,7 +72,7 @@ class ModelTaskDistillationWithContour(torch.nn.Module):
         sum_semseg = torch.add(torch.add(initial_penultimate_semseg_4x, after_attention_depth), after_attention_contour)
         sum_depth = torch.add(torch.add(initial_penultimate_depth_4x, after_attention_semseg), after_attention_contour)
 
-        # Final prediction after decoder #3 and #4
+        # Final prediction after decoder #4 and #5
         final_prediction_semseg_4x = self.second_decoder_semseg(sum_semseg)
         final_prediction_depth_4x = self.second_decoder_depth(sum_depth)
         final_prediction_semseg_1x = F.interpolate(final_prediction_semseg_4x, size=input_resolution, mode='bilinear', align_corners=False)
@@ -81,6 +83,6 @@ class ModelTaskDistillationWithContour(torch.nn.Module):
 
         out[MOD_SEMSEG] = [initial_prediction_semseg_1x, final_prediction_semseg_1x]
         out[MOD_DEPTH] = [initial_prediction_depth_1x, final_prediction_depth_1x]
-        out[MOD_CONTOUR] = initial_prediction_contour_1x
+        out[MOD_CONTOUR] = initial_probabilities_contour_1x
 
         return out
