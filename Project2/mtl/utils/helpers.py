@@ -5,6 +5,7 @@ from mtl.datasets.dataset_miniscapes import DatasetMiniscapes
 from mtl.models.model_deeplab_v3_plus import ModelDeepLabV3Plus
 from mtl.models.model_branched_architecture import ModelBranchedArchitecture
 from mtl.models.model_task_distillation import ModelTaskDistillation
+from mtl.models.model_task_distillation_with_contour import ModelTaskDistillationWithContour
 
 
 def resolve_dataset_class(name):
@@ -18,6 +19,7 @@ def resolve_model_class(name):
         'deeplabv3p': ModelDeepLabV3Plus,
         'branched': ModelBranchedArchitecture,
         'task_distillation': ModelTaskDistillation,
+        'task_distillation_with_contour': ModelTaskDistillationWithContour
     }[name]
 
 

@@ -2,6 +2,7 @@ MOD_ID = 'id'
 MOD_RGB = 'rgb'
 MOD_SEMSEG = 'semseg'
 MOD_DEPTH = 'depth'
+MOD_CONTOUR = 'contour'
 
 SPLIT_TRAIN = 'train'
 SPLIT_VALID = 'val'

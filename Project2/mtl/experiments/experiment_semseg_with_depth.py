@@ -42,6 +42,7 @@ class ExperimentSemsegDepth(pl.LightningModule):
         outputs_descriptor = {
             MOD_SEMSEG: self.semseg_num_classes,
             MOD_DEPTH: 1,
+            MOD_CONTOUR: 2 # one for Canny applied on RGB, the other for Canny applied on Segmentation Ground Truth.
         }
 
         model_class = resolve_model_class(cfg.model_name)
@@ -91,6 +92,8 @@ class ExperimentSemsegDepth(pl.LightningModule):
         y_hat = self.net(rgb)
         y_hat_semseg = y_hat[MOD_SEMSEG]
         y_hat_depth = y_hat[MOD_DEPTH]
+        if self.cfg.model_name == 'task_distillation_with_contour':
+            y_hat_contour = y_hat[MOD_CONTOUR]
 
         if type(y_hat_semseg) is list:
             # deep supervision scenario: penalize all predicitons in the list and average losses
