@@ -20,7 +20,7 @@ def compute_contour_given_labels(y_semseg_lbl):
     output = torch.zeros((B, H, W))
     
     output[:, 1:, :] = torch.ne(y_semseg_lbl[:, 1:, :], y_semseg_lbl[:, :H-1, :])
-    output[:, :, 1:] = torch.logical_or(output[:, :, 1:], torch.ne(y_semseg_lbl[:, :, 1:], y_semseg_lbl[:, :, :W-1]))
+    output[:, :, 1:] = output[:, :, 1:] + torch.ne(y_semseg_lbl[:, :, 1:], y_semseg_lbl[:, :, :W-1]) > 0
 
     return output
 
