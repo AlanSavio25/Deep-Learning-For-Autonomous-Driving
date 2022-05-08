@@ -63,5 +63,9 @@ def compute_normals(depth_image):
             n = torch.nn.functional.normalize(d, dim=1)
 
             output[:, :, y, x] = n
-
+    
+    # Put same normal in border of the images
+    output[:, :, 0, :] = output[:, :, 1, :] 
+    output[:, :, :, 0] = output[:, :, :, 1]
+    
     return output
