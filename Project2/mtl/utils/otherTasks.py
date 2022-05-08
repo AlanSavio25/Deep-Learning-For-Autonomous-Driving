@@ -16,16 +16,12 @@ def compute_contour_given_labels(y_semseg_lbl):
         the one being to the right or below the other is considered as an edge) or 0 otherwise.
     """
     B, H, W = y_semseg_lbl.shape
-    #if y_semseg_lbl.is_cuda:
-    #    y_semseg_lbl = y_semseg_lbl.cpu()
 
-    output = torch.zeros((B, H, W)).cuda()
-    for y in range(0, H):
-        for x in range(0, W):
-            if(y!=0):
-                output[:, y, x] = torch.ne(y_semseg_lbl[:, y, x], y_semseg_lbl[:, y-1, x])
-            if(x!=0):
-                output[:, y, x] = output[:, y, x] + torch.ne(y_semseg_lbl[:, y, x], y_semseg_lbl[:, y, x-1]) > 0 # a+b>0 is equiavlent to bitwise or between a and b
+    output = torch.zeros((B, H, W))
+    
+    output[:, 1:, :] = torch.ne(y_semseg_lbl[:, 1:, :], y_semseg_lbl[:, :H-1, :])
+    output[:, :, 1:] = torch.logical_or(output[:, :, 1:], torch.ne(y_semseg_lbl[:, :, 1:], y_semseg_lbl[:, :, :W-1]))
+
     return output
 
 def compute_normals(depth_image):
@@ -67,5 +63,5 @@ def compute_normals(depth_image):
     # Put same normal in border of the images
     output[:, :, 0, :] = output[:, :, 1, :] 
     output[:, :, :, 0] = output[:, :, :, 1]
-    
+
     return output
