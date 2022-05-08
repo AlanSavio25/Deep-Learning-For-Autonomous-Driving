@@ -13,6 +13,7 @@ from mtl.utils.metrics import MetricsSemseg, MetricsDepth
 from mtl.utils.helpers import resolve_optimizer, resolve_dataset_class, resolve_model_class, resolve_lr_scheduler
 from mtl.utils.transforms import get_transforms
 from mtl.utils.visualization import compose
+from mtl.utils.otherTasks import compute_contour_given_labels
 
 
 class ExperimentSemsegDepth(pl.LightningModule):
@@ -46,7 +47,7 @@ class ExperimentSemsegDepth(pl.LightningModule):
             outputs_descriptor = {
                 MOD_SEMSEG: self.semseg_num_classes,
                 MOD_DEPTH: 1,
-                MOD_CONTOUR: 2 # one for Canny applied on RGB, the other for Canny applied on Segmentation Ground Truth.
+                MOD_CONTOUR: 1,
             }
         else: 
             outputs_descriptor = {
@@ -96,22 +97,7 @@ class ExperimentSemsegDepth(pl.LightningModule):
         y_depth = batch[MOD_DEPTH].squeeze(1)
 
         if self.cfg.model_name == 'task_distillation_with_contour':
-            B, H, W = y_depth.shape
-            y_contours_rgb = torch.empty(0, H, W)
-            y_contours_semseg = torch.empty(0, H, W)
-            for rgb_image, y_semseg_lbl_image in zip(rgb, y_semseg_lbl):
-                rgb_image = rgb_image.transpose(0, 1).transpose(1, 2) # To have channels as last dimension for Canny to work
-                # We transform the semantic labels into rgb (grey) channels. Since we use canny with threshold 0,0, doesn't matter what actual color it is
-                semseg_lbl_unsqueeze = y_semseg_lbl_image.unsqueeze(2)
-                semseg_lbl_3d = torch.cat([semseg_lbl_unsqueeze, semseg_lbl_unsqueeze, semseg_lbl_unsqueeze], dim=2)
-
-                y_contour_rgb = torch.from_numpy(cv.Canny(rgb_image.cpu().numpy().astype(np.uint8), 100, 200)).float()/255 # /255 to have either 0 or 1
-                y_contour_semseg = torch.from_numpy(cv.Canny(semseg_lbl_3d.cpu().numpy().astype(np.uint8), 0, 0)).float()/255 # /255 to have either 0 or 1
-
-                y_contours_rgb = torch.cat([y_contours_rgb, y_contour_rgb.unsqueeze(0)])
-                y_contours_semseg = torch.cat([y_contours_semseg, y_contour_semseg.unsqueeze(0)])
-
-            y_contour = torch.stack([y_contours_rgb, y_contours_semseg], dim=1) # Stack to have 2 channels
+            y_contour = compute_contour_given_labels(y_semseg_lbl)
 
         if torch.cuda.is_available():
             rgb = rgb.cuda()
@@ -127,13 +113,8 @@ class ExperimentSemsegDepth(pl.LightningModule):
 
         loss_contour = 0
         if self.cfg.model_name == 'task_distillation_with_contour':
-            loss_contour = self.loss_contour(y_hat_contour, y_contour) # Equally weight both contour
-            """
-            # If we want to give more importance to one of the two contour image, we can compute them separately
-            loss_contour_semseg = self.loss_contour(y_hat_contour[:, 0, :, :], y_contour[:, 0, :, :])
-            loss_contour_rgb = self.loss_contour(y_hat_contour[:, 1, :, :], y_contour[:, 1, :, :])
-            loss_contour = (loss_contour_semseg + loss_contour_rgb) / 2
-            """
+            loss_contour = self.loss_contour(y_hat_contour.squeeze(), y_contour)
+
         if type(y_hat_semseg) is list:
             # deep supervision scenario: penalize all predicitons in the list and average losses
             loss_semseg = sum([self.loss_semseg(y_hat_semseg_i, y_semseg_lbl) for y_hat_semseg_i in y_hat_semseg])
