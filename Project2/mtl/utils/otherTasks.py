@@ -11,18 +11,19 @@ def compute_contour_given_labels(y_semseg_lbl):
 
     Return
     ----------
-    output : torch.tensor(B, H, W)
-        The edges of the images with 1 for the pixels being edges (change between 2 different classes, 
+    edges : torch.tensor(B, H, W)
+        The edges of the semantic images with 1 for the pixels being edges (change between 2 different classes, 
         the one being to the right or below the other is considered as an edge) or 0 otherwise.
     """
     B, H, W = y_semseg_lbl.shape
 
-    output = torch.zeros((B, H, W))
+    edges = torch.zeros((B, H, W), device="cuda" if torch.cuda.is_available() else "cpu")
     
-    output[:, 1:, :] = torch.ne(y_semseg_lbl[:, 1:, :], y_semseg_lbl[:, :H-1, :])
-    output[:, :, 1:] = output[:, :, 1:] + torch.ne(y_semseg_lbl[:, :, 1:], y_semseg_lbl[:, :, :W-1]) > 0
+    edges[:, 1:, :] = torch.ne(y_semseg_lbl[:, 1:, :], y_semseg_lbl[:, :H-1, :])
+    edges[:, :, 1:] = edges[:, :, 1:] + torch.ne(y_semseg_lbl[:, :, 1:], y_semseg_lbl[:, :, :W-1]) > 0
 
-    return output
+    return edges.to(torch.float)
+
 
 def compute_normals(depth_image):
     """

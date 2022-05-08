@@ -99,11 +99,13 @@ class ExperimentSemsegDepth(pl.LightningModule):
         if self.cfg.model_name == 'task_distillation_with_contour':
             y_contour = compute_contour_given_labels(y_semseg_lbl)
 
+
         if torch.cuda.is_available():
             rgb = rgb.cuda()
             y_semseg_lbl = y_semseg_lbl.cuda()
             y_depth = y_depth.cuda()
-            y_contour = y_contour.cuda()
+            if self.cfg.model_name == 'task_distillation_with_contour':
+                y_contour = y_contour.cuda()
 
         y_hat = self.net(rgb)
         y_hat_semseg = y_hat[MOD_SEMSEG]
