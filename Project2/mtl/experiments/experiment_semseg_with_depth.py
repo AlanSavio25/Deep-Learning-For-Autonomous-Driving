@@ -9,6 +9,7 @@ from torch.utils.data.dataloader import default_collate
 
 from mtl.datasets.definitions import *
 from mtl.losses.loss_regression import LossRegression
+from mtl.losses.weighted_bce import WeightedBCE
 from mtl.utils.metrics import MetricsSemseg, MetricsDepth
 from mtl.utils.helpers import resolve_optimizer, resolve_dataset_class, resolve_model_class, resolve_lr_scheduler
 from mtl.utils.transforms import get_transforms
@@ -86,7 +87,7 @@ class ExperimentSemsegDepth(pl.LightningModule):
         self.loss_semseg = torch.nn.CrossEntropyLoss(ignore_index=self.semseg_ignore_label)
         self.loss_depth = LossRegression()
         if self.cfg.model_name == 'task_distillation_with_contour':
-            self.loss_contour = torch.nn.BCELoss() # Binary since only two classes: edge or not
+            self.loss_contour = WeightedBCE() #torch.nn.BCELoss() # Binary since only two classes: edge or not
 
         self.metrics_semseg = MetricsSemseg(self.semseg_num_classes, self.semseg_ignore_label, self.semseg_class_names)
         self.metrics_depth = MetricsDepth()

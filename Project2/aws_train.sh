@@ -24,7 +24,7 @@ cd /home/ubuntu/code/
 python -m mtl.scripts.train \
   --log_dir /home/ubuntu/results/ \
   --dataset_root /home/ubuntu/miniscapes/ \
-  --name WithContour \
+  --name WeightedBCE_ContourLoss \
   --optimizer adam \
   --optimizer_lr 0.0001 \
   --model_name task_distillation_with_contour \
