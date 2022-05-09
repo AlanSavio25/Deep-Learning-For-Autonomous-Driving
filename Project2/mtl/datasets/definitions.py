@@ -3,6 +3,7 @@ MOD_RGB = 'rgb'
 MOD_SEMSEG = 'semseg'
 MOD_DEPTH = 'depth'
 MOD_CONTOUR = 'contour'
+MOD_NORMAL = 'normal'
 
 SPLIT_TRAIN = 'train'
 SPLIT_VALID = 'val'

@@ -14,7 +14,7 @@ from mtl.utils.metrics import MetricsSemseg, MetricsDepth
 from mtl.utils.helpers import resolve_optimizer, resolve_dataset_class, resolve_model_class, resolve_lr_scheduler
 from mtl.utils.transforms import get_transforms
 from mtl.utils.visualization import compose
-from mtl.utils.otherTasks import compute_contour_given_labels
+from mtl.utils.otherTasks import compute_contour_given_labels, compute_normals
 
 
 class ExperimentSemsegDepth(pl.LightningModule):
@@ -49,6 +49,12 @@ class ExperimentSemsegDepth(pl.LightningModule):
                 MOD_SEMSEG: self.semseg_num_classes,
                 MOD_DEPTH: 1,
                 MOD_CONTOUR: 1,
+            }
+        elif self.cfg.model_name == 'task_distillation_with_normal':
+            outputs_descriptor = {
+                MOD_SEMSEG: self.semseg_num_classes,
+                MOD_DEPTH: 1,
+                MOD_NORMAL: 3,
             }
         else: 
             outputs_descriptor = {
@@ -88,6 +94,8 @@ class ExperimentSemsegDepth(pl.LightningModule):
         self.loss_depth = LossRegression()
         if self.cfg.model_name == 'task_distillation_with_contour':
             self.loss_contour = WeightedBCE() #torch.nn.BCELoss() # Binary since only two classes: edge or not
+        elif self.cfg.model_name == 'task_distillation_with_normal':
+            self.loss_normal = torch.nn.MSELoss()
 
         self.metrics_semseg = MetricsSemseg(self.semseg_num_classes, self.semseg_ignore_label, self.semseg_class_names)
         self.metrics_depth = MetricsDepth()
@@ -99,7 +107,9 @@ class ExperimentSemsegDepth(pl.LightningModule):
 
         if self.cfg.model_name == 'task_distillation_with_contour':
             y_contour = compute_contour_given_labels(y_semseg_lbl)
-
+        
+        elif self.cfg.model_name == 'task_distillation_with_normal':
+            y_normal = compute_normals(y_depth)
 
         if torch.cuda.is_available():
             rgb = rgb.cuda()
@@ -107,16 +117,25 @@ class ExperimentSemsegDepth(pl.LightningModule):
             y_depth = y_depth.cuda()
             if self.cfg.model_name == 'task_distillation_with_contour':
                 y_contour = y_contour.cuda()
+            if self.cfg.model_name == 'task_distillation_with_normal':
+                y_normal = y_normal.cuda()
+
 
         y_hat = self.net(rgb)
         y_hat_semseg = y_hat[MOD_SEMSEG]
         y_hat_depth = y_hat[MOD_DEPTH]
         if self.cfg.model_name == 'task_distillation_with_contour':
             y_hat_contour = y_hat[MOD_CONTOUR]
+        if self.cfg.model_name == 'task_distillation_with_normal':
+            y_hat_normal = y_hat[MOD_NORMAL]
 
         loss_contour = 0
         if self.cfg.model_name == 'task_distillation_with_contour':
             loss_contour = self.loss_contour(y_hat_contour.squeeze(), y_contour)
+        
+        loss_normal = 0
+        if self.cfg.model_name == 'task_distillation_with_normal':
+            loss_normal = self.loss_normal(y_hat_normal, y_normal)
 
         if type(y_hat_semseg) is list:
             # deep supervision scenario: penalize all predicitons in the list and average losses
@@ -130,7 +149,7 @@ class ExperimentSemsegDepth(pl.LightningModule):
             loss_semseg = self.loss_semseg(y_hat_semseg, y_semseg_lbl)
             loss_depth = self.loss_depth(y_hat_depth, y_depth)
 
-        loss_total = self.cfg.loss_weight_semseg * loss_semseg + self.cfg.loss_weight_depth * loss_depth + self.cfg.loss_weight_contour*loss_contour
+        loss_total = self.cfg.loss_weight_semseg * loss_semseg + self.cfg.loss_weight_depth * loss_depth + self.cfg.loss_weight_contour*loss_contour + self.cfg.loss_weight_normal*loss_normal
 
         self.log_dict({
                 'loss_train/semseg': loss_semseg,

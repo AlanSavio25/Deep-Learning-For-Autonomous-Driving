@@ -43,10 +43,10 @@ def compute_normals(depth_image):
     """
     B, H, W = depth_image.shape
     
-    output = torch.zeros(B, 3, H, W)
+    output = torch.zeros((B, 3, H, W), dtype=torch.float, device="cuda" if torch.cuda.is_available() else "cpu")
 
-    xvalues = torch.arange(0, W)
-    yvalues = torch.arange(0, H)
+    xvalues = torch.arange(0, W, device="cuda" if torch.cuda.is_available() else "cpu")
+    yvalues = torch.arange(0, H, device="cuda" if torch.cuda.is_available() else "cpu")
 
     """
     /* * * * *
@@ -56,13 +56,13 @@ def compute_normals(depth_image):
     """
     
     tyy, txx = torch.meshgrid(yvalues[:H-1], xvalues[1:])
-    t = torch.concat([torch.stack([txx, tyy], dim=2).unsqueeze(0).repeat(B, 1, 1, 1), depth_image[:, :H-1, 1:].unsqueeze(3)], dim=3)
+    t = torch.cat([torch.stack([txx, tyy], dim=2).unsqueeze(0).repeat(B, 1, 1, 1).to(torch.float), depth_image[:, :H-1, 1:].unsqueeze(3)], dim=3)
 
     lyy, lxx = torch.meshgrid(yvalues[1:], xvalues[:W-1])
-    l = torch.concat([torch.stack([lxx, lyy], dim=2).unsqueeze(0).repeat(B, 1, 1, 1), depth_image[:, 1:, :W-1].unsqueeze(3)], dim=3) 
+    l = torch.cat([torch.stack([lxx, lyy], dim=2).unsqueeze(0).repeat(B, 1, 1, 1).to(torch.float), depth_image[:, 1:, :W-1].unsqueeze(3)], dim=3) 
     
     cyy, cxx = torch.meshgrid(yvalues[1:], xvalues[1:])
-    c = torch.concat([torch.stack([cxx, cyy], dim=2).unsqueeze(0).repeat(B, 1, 1, 1), depth_image[:, 1:, 1:].unsqueeze(3)], dim=3)
+    c = torch.cat([torch.stack([cxx, cyy], dim=2).unsqueeze(0).repeat(B, 1, 1, 1).to(torch.float), depth_image[:, 1:, 1:].unsqueeze(3)], dim=3)
 
     
     d = torch.cross(torch.sub(l, c), torch.sub(t, c), dim=3)

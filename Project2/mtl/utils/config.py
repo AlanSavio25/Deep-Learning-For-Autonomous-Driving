@@ -79,7 +79,7 @@ def command_line_parser():
         '--dataset', type=str, default='miniscapes', choices=['miniscapes'], help='Dataset name')
 
     parser.add_argument(
-        '--model_name', type=str, default='deeplabv3p', choices=['deeplabv3p', 'branched', 'task_distillation', 'task_distillation_with_contour'], help='CNN architecture')
+        '--model_name', type=str, default='deeplabv3p', choices=['deeplabv3p', 'branched', 'task_distillation', 'task_distillation_with_contour', 'task_distillation_with_normal'], help='CNN architecture')
     parser.add_argument(
         '--model_encoder_name', type=str, default='resnet34', choices=['resnet34'], help='CNN architecture encoder')
 
@@ -89,6 +89,8 @@ def command_line_parser():
         '--loss_weight_depth', type=float, default=0.5, help='Weight of depth estimation loss')
     parser.add_argument(
         '--loss_weight_contour', type=float, default=0.0, help='Weight of contour estimation loss')
+    parser.add_argument(
+        '--loss_weight_normal', type=float, default=0.0, help='Weight of normal estimation loss')  
 
     parser.add_argument(
         '--workers', type=int, default=16, help='Number of worker threads fetching training data')
