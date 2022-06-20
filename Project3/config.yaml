@@ -1,0 +1,57 @@
+# Course: Deep Learning for Autonomous Driving, ETH Zurich
+# Material for Project 3
+# For further questions contact Ozan Unal, ozan.unal@vision.ee.ethz.ch
+
+name: 'default'
+
+data:
+    root_dir: '/home/ubuntu/dataset'
+    batch_size: 4
+    delta: 1.0                  # Task 2a: Extension of the bounding boxes
+    max_points: 512             # Task 2b: Maximum points per pooled region
+    num_samples: 64             # Task 3b: Number of samples per frame
+    num_fg_sample: 32           # Task 3b: Maximum allowed number of foreground samples
+    bg_hard_ratio: 0.5          # Task 3b: Amongst background samples, hard/all
+    t_fg_lb: 0.55               # Task 3b: Foreground sample iou lower bound
+    t_bg_hard_lb: 0.05          # Task 3b: Background hard sample iou lower bound
+    t_bg_up: 0.45               # Task 3b: Background sample iou upper bound
+
+model:
+    channel_in: 128
+    npoint: [128, 32, -1]
+    radius: [0.2, 0.4, 100]
+    nsample: [64, 64, 64]
+    mlps: [[128, 128, 128],
+            [128, 128, 256],
+            [256, 256, 512]]
+    cls_fc: [256, 256]
+    reg_fc: [256, 256]
+
+optimizer:
+    lr: 0.004
+    momentum: 0.9
+
+scheduler:
+    milestones: [10,20,30]
+    gamma: 0.5
+
+loss:
+    positive_reg_lb: 0.55
+    positive_cls_lb: 0.6
+    negative_cls_ub: 0.45
+
+eval:
+    output_dir: '/home/ubuntu/results/'
+    t_rpn_recall: 0.5           # Task 1: RPN recall threshold
+    t_nms: 0.1                  # Task 5: NMS threshold
+    t_score: 0.3                # Task 6: Refinement network score threshold
+
+trainer:
+    default_root_dir: '/home/ubuntu/results'
+    max_epochs: 35
+    check_val_every_n_epoch: 1
+    resume_from_checkpoint:
+    num_sanity_val_steps: 0
+    # Uncomment the following options if you want to try out framework changes without training too long
+    # limit_train_batches: 10
+    # log_every_n_steps: 5
