@@ -1,5 +1,7 @@
 import numpy as np
 import math
+from bbox.geometry import polygon_area, polygon_collision, polygon_intersection
+from shapely.geometry import Polygon
 
 def label2corners(label):
     '''
@@ -74,12 +76,71 @@ def get_iou(pred, target):
     '''
     Task 1
     input
-        pred (N,7) 3D bounding box corners
-        target (N,7) 3D bounding box corners
+        pred (N,7) 3D bounding box corners # typo? should be (x,y,z,h,w,l,ry)
+        target (M,7) 3D bounding box corners
     output
         iou (N,M) pairwise 3D intersection-over-union
     '''
-    pass
+
+    iou = np.array(pred.shape[0], target.shape[0]) # (N,M)
+    pred_labels = label2corners(pred) # (N, 8, 3)
+    target_labels = label2corners(target) # (M, 8, 3)
+
+    for i in range(pred_labels.shape[0]):
+        for j in range(target_labels.shape[0]):
+            pred_corners = pred_labels[i]
+            target_corners = target_labels[j]
+            pred_bbox_info = pred[i]
+            target_bbox_info = target[j]
+
+            iou[i,j] = get_iou_pairwise(pred_corners, target_corners, pred_bbox_info, target_bbox_info)
+
+    return iou
+
+def get_iou_pairwise(pred_corners, target_corners, pred_bbox_info, target_bbox_info):
+    '''
+    input
+        pred (8,3)
+        target (8,3)
+        pred_bbox_info (x,y,z,h,w,l,ry)
+        target_bbox_info (x,y,z,h,w,l,ry)
+    output
+        iou - float
+    '''
+
+    pred_poly = Polygon(pred_corners[:4, [0,2]])
+    target_poly = Polygon(target_corners[:4, [0,2]])
+
+    # check if the two boxes don't overlap
+    if not pred_poly.intersects(target_poly):
+        return 0.0
+
+    # intersection_points = polygon_intersection(pred_corners[0:4, [0,2]], target_corners[0:4, [0,2]])
+    # inter_area = polygon_area(intersection_points)
+    inter_area = pred_poly.intersection(target_poly).area
+
+    # iou = 0 if bbox is on top of the other with no overlap
+    if pred_corners[7, 1] <= target_corners[0,1] or target_corners[7,1] <= pred_corners[0,1]:
+        return 0.0
+
+    min_intersection_y = np.maximum(pred_corners[0, 1], target_corners[0,1])
+    max_intersection_y = np.minimum(pred_corners[7, 1], target_corners[7, 1])
+
+    inter_volume = inter_area * (max_intersection_y - min_intersection_y)
+
+    pred_volume = pred_bbox_info[3] * pred_bbox_info[4] * pred_bbox_info[5]
+    target_volume = target_bbox_info[3] * target_bbox_info[4] * target_bbox_info[5]
+
+    union_volume = (pred_volume + target_volume - inter_volume)
+
+    iou = inter_volume / union_volume
+
+    # set nan and +/- inf to 0
+    if np.isinf(iou) or np.isnan(iou):
+        iou = 0.0
+
+    return iou
+
 
 def compute_recall(pred, target, threshold):
     '''
