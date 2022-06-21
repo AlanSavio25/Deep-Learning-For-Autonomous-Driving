@@ -6,7 +6,7 @@ def label2corners(label):
     '''
     Task 1
     input
-        label (N,7) 3D bounding box with (x,y,z,h,w,l,ry)
+        label (N,7) 3D bounding boxes with (x,y,z,h,w,l,ry)
     output
         corners (N,8,3) corner coordinates in the rectified reference frame
     '''
@@ -75,8 +75,8 @@ def get_iou(pred, target):
     '''
     Task 1
     input
-        pred (N,7) 3D bounding box with (x,y,z,h,w,l,ry)
-        target (M,7) 3D bounding box with (x,y,z,h,w,l,ry)
+        pred (N,7) 3D bounding boxes with (x,y,z,h,w,l,ry)
+        target (M,7) 3D bounding boxes with (x,y,z,h,w,l,ry)
     output
         iou (N,M) pairwise 3D intersection-over-union
     '''
@@ -99,10 +99,10 @@ def get_iou(pred, target):
 def get_iou_pairwise(pred_corners, target_corners, pred_bbox_info, target_bbox_info):
     '''
     input
-        pred_corners (8,3)
-        target_corners (8,3)
-        pred_bbox_info (x,y,z,h,w,l,ry)
-        target_bbox_info (x,y,z,h,w,l,ry)
+        pred_corners (8,3) corner coordinates in the rectified reference frame
+        target_corners (8,3) corner coordinates in the rectified reference frame
+        pred_bbox_info 3D bounding box with (x,y,z,h,w,l,ry)
+        target_bbox_info 3D bounding box with (x,y,z,h,w,l,ry)
     output
         iou - float
     '''
