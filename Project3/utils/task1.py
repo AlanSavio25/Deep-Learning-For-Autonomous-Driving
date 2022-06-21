@@ -10,6 +10,15 @@ def label2corners(label):
     output
         corners (N,8,3) corner coordinates in the rectified reference frame
     '''
+    """        
+             1 -------- 0
+           /|         /|
+          2 -------- 3 .
+          | |        | |
+          . 5 -------- 4
+          |/         |/
+          6 -------- 7
+    """
     N = label.shape[0]
     bboxes_corners_bbox_coordinates = np.ones((N, 8, 4)) # 8 corners of each bbox with size 4 for homogeneous coordinates
     bboxes_corners_cam = []
