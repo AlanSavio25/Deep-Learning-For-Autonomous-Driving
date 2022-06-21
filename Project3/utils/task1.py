@@ -152,7 +152,7 @@ def compute_recall(pred, target, threshold):
 
     iou = get_iou(pred, target) # N,M
     tp = len(iou[iou>=threshold])
-    fn = np.sum(np.all(iou<threshold, axis=0))
+    fn = np.sum(np.all(iou<=threshold, axis=0))
     if tp+fn == 0:
         return 0
     recall = tp/(tp + fn)
