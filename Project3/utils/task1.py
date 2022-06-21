@@ -1,6 +1,5 @@
 import numpy as np
 import math
-from bbox.geometry import polygon_area, polygon_collision, polygon_intersection
 from shapely.geometry import Polygon
 
 def label2corners(label):
@@ -76,13 +75,13 @@ def get_iou(pred, target):
     '''
     Task 1
     input
-        pred (N,7) 3D bounding box corners # typo? should be (x,y,z,h,w,l,ry)
-        target (M,7) 3D bounding box corners
+        pred (N,7) 3D bounding box with (x,y,z,h,w,l,ry)
+        target (M,7) 3D bounding box with (x,y,z,h,w,l,ry)
     output
         iou (N,M) pairwise 3D intersection-over-union
     '''
 
-    iou = np.array(pred.shape[0], target.shape[0]) # (N,M)
+    iou = np.zeros((pred.shape[0], target.shape[0])) # (N,M)
     pred_labels = label2corners(pred) # (N, 8, 3)
     target_labels = label2corners(target) # (M, 8, 3)
 
@@ -100,8 +99,8 @@ def get_iou(pred, target):
 def get_iou_pairwise(pred_corners, target_corners, pred_bbox_info, target_bbox_info):
     '''
     input
-        pred (8,3)
-        target (8,3)
+        pred_corners (8,3)
+        target_corners (8,3)
         pred_bbox_info (x,y,z,h,w,l,ry)
         target_bbox_info (x,y,z,h,w,l,ry)
     output
@@ -115,8 +114,6 @@ def get_iou_pairwise(pred_corners, target_corners, pred_bbox_info, target_bbox_i
     if not pred_poly.intersects(target_poly):
         return 0.0
 
-    # intersection_points = polygon_intersection(pred_corners[0:4, [0,2]], target_corners[0:4, [0,2]])
-    # inter_area = polygon_area(intersection_points)
     inter_area = pred_poly.intersection(target_poly).area
 
     # iou = 0 if bbox is on top of the other with no overlap
