@@ -1,5 +1,6 @@
 import numpy as np
 from .task1 import label2corners
+# from .vis import *
 
 
 def roi_pool(pred, xyz, feat, config):
@@ -55,6 +56,11 @@ def roi_pool(pred, xyz, feat, config):
 
             pooled_xyz.append(xyz[indices])
             pooled_feat.append(feat[indices])
+    
+    # visualizer = Visualizer()
+    # visualizer.update(np.array(pooled_xyz).reshape(-1, 3))
+    # visualizer.update_boxes(label2corners(np.array(valid_pred)))
+    # vispy.app.run()
 
     return np.array(valid_pred), np.array(pooled_xyz), np.array(pooled_feat)
 
