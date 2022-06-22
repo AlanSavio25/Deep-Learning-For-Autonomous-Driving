@@ -11,7 +11,7 @@ def label2corners(label):
         corners (N,8,3) corner coordinates in the rectified reference frame
     '''
     """        
-             1 -------- 0
+            1 -------- 0
            /|         /|
           2 -------- 3 .
           | |        | |
