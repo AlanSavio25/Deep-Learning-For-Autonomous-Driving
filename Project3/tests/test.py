@@ -27,6 +27,7 @@ class CheckTest():
 	def __init__(self, config, recordings_dir):
 		self.config, self.recordings_dir = config, recordings_dir
 		self.ds = DatasetLoader(config['data'], 'val')
+		#self.ds = DatasetLoader(config['data'], 'minival')
 
 	def display_test_result(self, result, duration=False):
 		result_message = 'Test passed.' if result else 'Test failed.'
