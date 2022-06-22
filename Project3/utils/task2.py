@@ -46,17 +46,14 @@ def roi_pool(pred, xyz, feat, config):
             valid_pred.append(box)
             
             indices = indexes_in_box
+
             if  indexes_in_box.shape[0]<max_points:
-                number_tiles = int(max_points/indexes_in_box.shape[0])+1
-                if max_points%indexes_in_box.shape[0] == 0:
-                    number_tiles-=1
-                indices = np.tile(indexes_in_box, number_tiles)
-            if  indices.shape[0] > max_points:
-                indices = random.sample(list(indices), max_points)
+                indices = np.random.choice(indexes_in_box, size=max_points, replace=True)
+            elif indexes_in_box.shape[0]>max_points:
+                indices = np.random.choice(indexes_in_box, size=max_points, replace=False)
 
             pooled_xyz.append(xyz[indices])
             pooled_feat.append(feat[indices])
-
 
     return np.array(valid_pred), np.array(pooled_xyz), np.array(pooled_feat)
 
@@ -122,8 +119,9 @@ def enlarge_boxes(pred, delta):
 # pred = np.array([[1,2,3,1,1,5,math.pi/2], [1,20,3,1,1,5,math.pi], [1,2.5,3,1,1,5,math.pi]])
 # xyz = np.array([[0,0,0], [1,2,3], [1,1.5,6]])
 # feat = np.array([[0,0,0,0,0], [1,2,3,4,4], [1,1.5,2,5,5]])
-# config = {"max_points":11, "delta":1}
+# config = {"max_points":2, "delta":1}
 # a,b,c = roi_pool(pred, xyz, feat, config)
 # print(a.shape)
 # print(b.shape)
 # print(c.shape)
+# print(b)
