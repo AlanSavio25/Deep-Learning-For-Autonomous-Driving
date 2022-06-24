@@ -1,7 +1,7 @@
 import numpy as np
 
-# from .task1 import get_iou # TODO: change back to this line
-from task1 import get_iou
+# from task1 import get_iou # Import libraries when testing locally
+from .task1 import get_iou
 
 
 def sample_proposals(pred, target, xyz, feat, config, train=False):
