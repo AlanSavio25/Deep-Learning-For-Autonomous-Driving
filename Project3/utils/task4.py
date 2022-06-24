@@ -55,8 +55,8 @@ class ClassificationLoss(nn.Module):
         positive_samples = iou >= self.config['positive_cls_lb'] # boolean array (N, )
         negative_samples = iou <= self.config['negative_cls_ub'] # boolean array (N, )
         positive_pred = pred[positive_samples]
-        neagtive_pred = pred[negative_samples]
-        final_iou = torch.cat([neagtive_pred, positive_pred], dim=0)
-        final_gt = torch.cat([torch.zeros_like(neagtive_pred), torch.ones_like(positive_pred)])
+        negative_pred = pred[negative_samples]
+        final_iou = torch.cat([negative_pred, positive_pred], dim=0)
+        final_gt = torch.cat([torch.zeros_like(negative_pred), torch.ones_like(positive_pred)])
 
         return self.loss(final_iou, final_gt)
