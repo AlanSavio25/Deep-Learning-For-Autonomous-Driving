@@ -42,18 +42,6 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
 
     indices = [(x, y) for x, y in zip(np.arange(iou.shape[0]), np.argmax(iou, axis=1))]  # indices of the ground_truth closest to each pred
 
-
-
-    # # assignment_indices = zip(np.arange(len(iou)), np.argmax(iou, axis=1)) # Returns a set of indices like [(0,2),(1,3)..]
-    # per_pred_indices = np.argmax(iou, axis=1) # N,1 These are the closest ground_truth to each pred
-    # # pred_indices = np.argmax(iou, axis=0) # M,1 These are the closest pred to each ground_truth
-    # per_pred_labels = np.asarray(target)[per_pred_indices] # N,1
-    # per_pred_iou = iou[np.arange(iou.shape[0]), per_pred_indices] # N,1
-    #
-    # per_target_indices = np.argmax(iou, axis=0) # index of prediction with max iou for each target
-    # highest_iou_preds = np.asarray(pred)[per_target_indices]
-    # per_target_iou = iou[per_target_indices, np.arange(iou.shape[1])]
-
     ## Part b) ##
 
     fg = [idx for idx in indices if iou[idx] >= 0.55]
@@ -74,11 +62,9 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
 
         elif len(extended_fg) == 0: # No fg, only bg
             if len(easy_bg) > 0 and len(hard_bg) > 0:
-                num_hard = np.floor(config['bg_hard_ratio'] * len(hard_bg))
-                num_easy = 64 - num_hard
-                easy_indices = easy_bg + np.random.choice(easy_bg, size=num_easy-len(easy_bg), replace=True)
-                hard_indices = hard_bg + np.random.choice(hard_bg, size=num_hard-len(hard_bg), replace=True)
-                sample_indices = easy_indices + hard_indices
+
+                sample_indices = get_bg_sample_indices(required_samples=64, easy=easy_bg, hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])
+
             elif len(easy_bg) > 0:
                 sample_indices = np.random.choice(easy_bg, size=64, replace=True)
             else:
@@ -88,18 +74,11 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
             if len(extended_fg) >= 32:
                 sample_indices = np.random.choice(extended_fg, size=32, replace=False) #+ compute bg samples (32)
             else:
-                sample_indices = extended_fg + compute bg samples (64-len(extended_fg))
+                sample_indices = extended_fg + get_bg_sample_indices(required_samples=64-len(extended_fg), easy=easy_bg, hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])
 
         assert len(sampled_indices) == 64
-
     else:
         sample_indices = extended_fg + bg
-
-
-    # background = np.where(labels_iou < 0.45)
-    # easy_background = np.where(labels_iou < 0.05)
-    # hard_background = np.where(labels_iou < 0.45 & labels_iou >= 0.05)
-    # extended_foreground = np.where()
 
     assigned_targets = target[[t for p, t in sample_indices]]
     samples_xyz = xyz[[p for p, t in sample_indices]]
@@ -107,3 +86,12 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
     samples_iou = iou[sample_indices]
 
     return assigned_targets, samples_xyz, samples_feat, samples_iou
+
+
+def get_bg_sample_indices(required_samples, easy, hard, bg_hard_ratio):
+    num_hard = np.floor(bg_hard_ratio * (len(easy)+len(hard)))
+    num_easy = required_samples - num_hard
+    easy_indices = easy + np.random.choice(easy, size=num_easy - len(easy), replace=True)
+    hard_indices = hard + np.random.choice(hard, size=num_hard - len(hard), replace=True)
+    sample_indices = easy_indices + hard_indices
+    return sample_indices
