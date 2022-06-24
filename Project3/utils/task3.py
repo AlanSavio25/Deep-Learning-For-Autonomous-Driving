@@ -71,7 +71,10 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
                 sample_indices = extended_fg[np.random.choice(len(extended_fg), size=config['num_fg_sample'], replace=False)]
             else:
                 sample_indices = extended_fg
-            sample_indices = np.concatenate((sample_indices, get_bg_sample_indices(required_samples=config['num_samples']-sample_indices.shape[0], easy=easy_bg, hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])))
+
+            required_bg_samples = config['num_samples'] - len(sample_indices)
+            bg_sample_indices = get_bg_sample_indices(required_samples=required_bg_samples, easy=easy_bg, hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])
+            sample_indices = np.concatenate((sample_indices, bg_sample_indices )) if (bg_sample_indices) > 0 else sample_indices
     else:
         sample_indices = np.concatenate((extended_fg, bg))
 
@@ -84,6 +87,8 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
 
 
 def get_bg_sample_indices(required_samples, easy, hard, bg_hard_ratio):
+    if required_samples == 0:
+        return np.array([])
     num_hard = int(np.floor(bg_hard_ratio * required_samples))
     num_easy = int(required_samples - num_hard)
     easy_indices = easy[np.random.choice(len(easy), size=num_easy, replace=True if len(easy) < num_easy else False)]
