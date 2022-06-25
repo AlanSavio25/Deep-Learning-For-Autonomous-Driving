@@ -1,6 +1,6 @@
 import numpy as np
 
-# from task1 import get_iou # Import libraries when testing locally
+# from task1 import get_iou  # Import libraries when testing locally
 from .task1 import get_iou
 
 
@@ -36,64 +36,84 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
         config['bg_hard_ratio'] background hard difficulty ratio (#hard samples/ #background samples)
     '''
 
-    iou = np.asarray(get_iou(pred, target))  # returns N,M
+    iou = get_iou(pred, target)  # returns N,M
 
-    ## Part a) ##
+    indices = [(x, y) for x, y in
+               zip(np.arange(iou.shape[0]), np.argmax(iou, axis=1))]  # indices of the ground_truth closest to each pred
 
-    indices = [(x, y) for x, y in zip(np.arange(iou.shape[0]), np.argmax(iou, axis=1))]  # indices of the ground_truth closest to each pred
-
-    ## Part b) ##
-
+    # Keeping all sets of indices in lists instead of np.arrays is simpler
     fg = [idx for idx in indices if iou[idx] >= config['t_fg_lb']]
-    bg = np.asarray([idx for idx in indices if iou[idx] < config['t_bg_up']])
-    easy_bg = np.asarray([idx for idx in indices if iou[idx] < config['t_bg_hard_lb']])
-    hard_bg = np.asarray([idx for idx in indices if config['t_bg_up'] > iou[idx] >= config['t_bg_hard_lb']])
+    bg = [idx for idx in indices if iou[idx] < config['t_bg_up']]
+    easy_bg = [idx for idx in indices if iou[idx] < config['t_bg_hard_lb']]
+    hard_bg = [idx for idx in indices if config['t_bg_up'] > iou[idx] >= config['t_bg_hard_lb']]
 
-    extended_indices = [(x, y) for x, y in zip(np.argmax(iou, axis=0), np.arange(iou.shape[1])) if iou[x, y] > 0]
-    extended_fg = np.asarray(fg + extended_indices)
+    extended_indices = [(x, y) for x, y in zip(np.argmax(iou, axis=0), np.arange(len(iou[0]))) if iou[x, y] > 0]
+    extended_fg = fg + extended_indices
 
     if train:
-        if len(bg) == 0: # No background, only foreground
-            sample_indices = extended_fg[np.random.choice(len(extended_fg), size=config['num_samples'], replace=True if len(extended_fg) < config['num_samples'] else False)]
+        if len(bg) == 0:  # No background, only foreground
+            sample_indices = np.array(extended_fg)[np.random.choice(len(extended_fg), size=config['num_samples'],
+                                                                    replace=True if len(extended_fg) < config['num_samples'] else False)].tolist()
 
-        elif len(extended_fg) == 0: # No fg, only bg
+        elif len(extended_fg) == 0:  # No fg, only bg
             if len(easy_bg) > 0 and len(hard_bg) > 0:
 
-                sample_indices = get_bg_sample_indices(required_samples=config['num_samples'], easy=easy_bg, hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])
+                sample_indices = get_bg_sample_indices(required_samples=config['num_samples'], easy=easy_bg,
+                                                       hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])
 
             elif len(easy_bg) > 0:
-                sample_indices = easy_bg[np.random.choice(len(easy_bg), size=config['num_samples'], replace=True if len(easy_bg) < config['num_samples'] else False)]
+                sample_indices = np.array(easy_bg)[np.random.choice(len(easy_bg), size=config['num_samples'],
+                                                                    replace=True if len(easy_bg) < config['num_samples'] else False)].tolist()
             else:
-                sample_indices = hard_bg[np.random.choice(len(hard_bg), size=config['num_samples'], replace=True if len(hard_bg) < config['num_samples'] else False)]
+                sample_indices = np.array(hard_bg)[np.random.choice(len(hard_bg), size=config['num_samples'],
+                                                                    replace=True if len(hard_bg) < config['num_samples'] else False)].tolist()
 
-        else: # both fg and bg exist in the scene
+        else:  # both fg and bg exist in the scene
             if len(extended_fg) >= config['num_fg_sample']:
-                sample_indices = extended_fg[np.random.choice(len(extended_fg), size=config['num_fg_sample'], replace=False)]
+                sample_indices = np.array(extended_fg)[np.random.choice(len(extended_fg), size=config['num_fg_sample'],
+                                                                        replace=False)].tolist()
             else:
                 sample_indices = extended_fg
 
             required_bg_samples = config['num_samples'] - len(sample_indices)
-            bg_sample_indices = get_bg_sample_indices(required_samples=required_bg_samples, easy=easy_bg, hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])
-            sample_indices = np.concatenate((sample_indices, bg_sample_indices )) if (bg_sample_indices) > 0 else sample_indices
+            bg_sample_indices = get_bg_sample_indices(required_samples=required_bg_samples, easy=easy_bg,
+                                                      hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'])
+            sample_indices = sample_indices + bg_sample_indices
     else:
-        sample_indices = np.concatenate((extended_fg, bg))
+        sample_indices = extended_fg + bg
 
-    assigned_targets = target[[t for _, t in sample_indices]]
+    samples_targets = target[[t for _, t in sample_indices]]
     samples_xyz = xyz[[p for p, _ in sample_indices]]
     samples_feat = feat[[p for p, _ in sample_indices]]
+    samples_iou = iou[[x for x, _ in sample_indices], [y for _, y in sample_indices]]
 
-    samples_iou = iou[[x for x,_ in sample_indices], [y for _,y in sample_indices]]
-    return assigned_targets, samples_xyz, samples_feat, samples_iou
+    return samples_targets, samples_xyz, samples_feat, samples_iou
 
 
 def get_bg_sample_indices(required_samples, easy, hard, bg_hard_ratio):
     if required_samples == 0:
-        return np.array([])
+        return []
     num_hard = int(np.floor(bg_hard_ratio * required_samples))
     num_easy = int(required_samples - num_hard)
-    easy_indices = easy[np.random.choice(len(easy), size=num_easy, replace=True if len(easy) < num_easy else False)]
-    hard_indices = hard[np.random.choice(len(hard), size=num_hard, replace=True if len(hard) < num_hard else False)]
-    sample_indices = np.concatenate((easy_indices, hard_indices))
+    easy_indices = np.array(easy)[np.random.choice(len(easy), size=num_easy,
+                                  replace=True if len(easy) < num_easy else False)].tolist()
+    hard_indices = np.array(hard)[np.random.choice(len(hard), size=num_hard,
+                                  replace=True if len(hard) < num_hard else False)].tolist()
+
+    sample_indices = easy_indices + hard_indices
     return sample_indices
 
 
+# Testing
+# pred = np.random.rand(100, 7)
+# target = np.random.rand(5, 7)
+# xyz = np.random.rand(100, 3)
+# feat = np.random.rand(100, 25)
+# import yaml
+#
+# config = yaml.safe_load(open('./config.yaml', 'r'))['data']
+# result = sample_proposals(pred, target, xyz, feat, config, train=True)
+# print(result[0].shape)
+# print(result[1].shape)
+# print(result[2].shape)
+# print(result[3].shape)
