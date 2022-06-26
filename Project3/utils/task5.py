@@ -40,7 +40,10 @@ def nms(pred, score, threshold):
         s_p = s_p[boxes_to_keep, :]
         c_p = c_p[boxes_to_keep]
 
-    s_f = np.squeeze(s_f) # Reshape from (M, 1, 7) to (M, 7)
+    if len(s_f) == 0:
+        return np.array([]), np.array([])
+
+    s_f = np.squeeze(s_f, axis=1) # Reshape from (M, 1, 7) to (M, 7)
     c_f = np.array(c_f).reshape(-1, 1) # Reshape from (M, ) to (M, 1)
     
     return s_f, c_f
