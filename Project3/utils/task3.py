@@ -95,10 +95,16 @@ def get_bg_sample_indices(required_samples, easy, hard, bg_hard_ratio):
         return []
     num_hard = int(np.floor(bg_hard_ratio * required_samples))
     num_easy = int(required_samples - num_hard)
-    easy_indices = np.array(easy)[np.random.choice(len(easy), size=num_easy,
-                                  replace=True if len(easy) < num_easy else False)].tolist()
-    hard_indices = np.array(hard)[np.random.choice(len(hard), size=num_hard,
-                                  replace=True if len(hard) < num_hard else False)].tolist()
+    if len(easy) > 0:
+        easy_indices = np.array(easy)[np.random.choice(len(easy), size=num_easy,
+                                      replace=True if len(easy) < num_easy else False)].tolist()
+    else:
+        easy_indices = []
+    if len(hard) > 0:
+        hard_indices = np.array(hard)[np.random.choice(len(hard), size=num_hard,
+                                      replace=True if len(hard) < num_hard else False)].tolist()
+    else:
+        hard_indices = []
 
     sample_indices = easy_indices + hard_indices
     return sample_indices
