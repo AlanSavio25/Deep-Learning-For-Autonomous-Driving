@@ -39,7 +39,7 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
     iou = get_iou(pred, target)  # returns N,M
 
     indices = [(x, y) for x, y in
-               zip(np.arange(iou.shape[0]), np.argmax(iou, axis=1))]  # indices of the ground_truth closest to each pred
+               zip(np.arange(iou.shape[0]), np.argmax(iou, axis=1))]  # N,1 indices of the ground_truth closest to each pred
 
     # Keeping all sets of indices in lists instead of np.arrays is simpler
     fg = [idx for idx in indices if iou[idx] >= config['t_fg_lb']]
@@ -47,7 +47,7 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
     easy_bg = [idx for idx in indices if iou[idx] < config['t_bg_hard_lb']]
     hard_bg = [idx for idx in indices if config['t_bg_up'] > iou[idx] >= config['t_bg_hard_lb']]
 
-    extended_indices = [(x, y) for x, y in zip(np.argmax(iou, axis=0), np.arange(len(iou[0]))) if iou[x, y] > 0]
+    extended_indices = [(x, y) for x, y in zip(np.argmax(iou, axis=0), np.arange(iou.shape[1])) if iou[x, y] > 0]
     extended_fg = fg + extended_indices
 
     if train:
