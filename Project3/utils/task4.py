@@ -23,6 +23,11 @@ class RegressionLoss(nn.Module):
             self.config['positive_reg_lb'] lower bound for positive samples
         '''
         positive_samples = iou >= self.config['positive_reg_lb'] # boolean array (N, )
+
+        # edge case where we have to return 0
+        if torch.sum(positive_samples) == 0:
+            return self.loss(torch.tensor([0.]), torch.tensor([0.]))
+
         positive_pred = pred[positive_samples]
         positive_target = target[positive_samples]
         
