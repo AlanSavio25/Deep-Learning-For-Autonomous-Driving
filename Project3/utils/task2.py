@@ -47,15 +47,10 @@ def roi_pool(pred, xyz, feat, config):
         if  indexes_in_box.shape[0] > 0:
             valid_pred.append(box)
             
-            indices = indexes_in_box
+            xyz_samples, feat_samples = sample_randomly(indexes_in_box, xyz, feat, max_points)
 
-            if  indexes_in_box.shape[0]<max_points:
-                indices = np.random.choice(indexes_in_box, size=max_points, replace=True)
-            elif indexes_in_box.shape[0]>max_points:
-                indices = np.random.choice(indexes_in_box, size=max_points, replace=False)
-
-            pooled_xyz.append(xyz[indices])
-            pooled_feat.append(feat[indices])
+            pooled_xyz.append(xyz_samples)
+            pooled_feat.append(feat_samples)
     
     # visualizer = Visualizer()
     # visualizer.update(np.array(pooled_xyz).reshape(-1, 3))
@@ -96,3 +91,26 @@ def enlarge_boxes(pred, delta):
     enlarged_pred[:, 1]=enlarged_pred[:, 1] + delta # Correct the center of the bottom face
     
     return enlarged_pred
+
+def sample_randomly(indexes_in_box, xyz, feat, max_points):
+    '''
+    input
+        indexes_in_box, (L, ): index of 3d points being in box without duplicate
+        xyz (N,3) point cloud
+        feat (N,C) features
+        max_points, int: number of points in the final sampled ROI (M)
+    output
+        xyz_samples (M, 3) Sample of 3D points with possible duplicates
+        feat_samples (M, C) Corresponding sample of features with possible duplicates
+    '''
+    indices = indexes_in_box
+
+    if  indexes_in_box.shape[0]<max_points:
+        indices = np.random.choice(indexes_in_box, size=max_points, replace=True)
+    elif indexes_in_box.shape[0]>max_points:
+        indices = np.random.choice(indexes_in_box, size=max_points, replace=False)
+
+    xyz_samples = xyz[indices]
+    feat_samples = feat[indices]
+
+    return xyz_samples, feat_samples
