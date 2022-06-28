@@ -16,6 +16,7 @@ data:
     t_fg_lb: 0.55               # Task 3b: Foreground sample iou lower bound
     t_bg_hard_lb: 0.05          # Task 3b: Background hard sample iou lower bound
     t_bg_up: 0.45               # Task 3b: Background sample iou upper bound
+    sampling_method: "uniform"  # Task 2 Roi-pooling sampling method and task 3 sampling method
 
 model:
     channel_in: 128
