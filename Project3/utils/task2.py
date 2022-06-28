@@ -47,7 +47,7 @@ def roi_pool(pred, xyz, feat, config):
         if  indexes_in_box.shape[0] > 0:
             valid_pred.append(box)
             
-            xyz_samples, feat_samples = sample_randomly(indexes_in_box, xyz, feat, max_points)
+            xyz_samples, feat_samples = sample(indexes_in_box, xyz, feat, max_points, method="uniform")
 
             pooled_xyz.append(xyz_samples)
             pooled_feat.append(feat_samples)
@@ -92,13 +92,14 @@ def enlarge_boxes(pred, delta):
     
     return enlarged_pred
 
-def sample_randomly(indexes_in_box, xyz, feat, max_points):
+def sample(indexes_in_box, xyz, feat, max_points, method = "random"):
     '''
     input
         indexes_in_box, (L, ): index of 3d points being in box without duplicate
         xyz (N,3) point cloud
         feat (N,C) features
         max_points, int: number of points in the final sampled ROI (M)
+        method, string: Method used to sample, must be either 'random' or 'uniform', default is 'random'
     output
         xyz_samples (M, 3) Sample of 3D points with possible duplicates
         feat_samples (M, C) Corresponding sample of features with possible duplicates
@@ -106,9 +107,17 @@ def sample_randomly(indexes_in_box, xyz, feat, max_points):
     indices = indexes_in_box
 
     if  indexes_in_box.shape[0]<max_points:
-        indices = np.random.choice(indexes_in_box, size=max_points, replace=True)
+        if method == "random":
+            indices = np.random.choice(indexes_in_box, size=max_points, replace=True)
+        elif method == "uniform":
+            number_tiles = int(max_points/indexes_in_box.shape[0]) if max_points%indexes_in_box.shape[0]==0 else int(max_points/indexes_in_box.shape[0])+1
+            indices = np.tile(indexes_in_box, number_tiles)[:max_points]
+        else:
+            raise ValueError(f"Method '{method}' is not valid! Must be 'random' or 'uniform'.")
     elif indexes_in_box.shape[0]>max_points:
         indices = np.random.choice(indexes_in_box, size=max_points, replace=False)
+
+    assert indices.shape[0] == max_points
 
     xyz_samples = xyz[indices]
     feat_samples = feat[indices]
