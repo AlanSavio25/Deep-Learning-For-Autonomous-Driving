@@ -49,7 +49,7 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
     hard_bg = [idx for idx in indices if config['t_bg_up'] > iou[idx] >= config['t_bg_hard_lb']]
 
     extended_indices = [(x, y) for x, y in zip(np.argmax(iou, axis=0), np.arange(iou.shape[1])) if iou[x, y] > 0]
-    extended_fg = fg + extended_indices
+    extended_fg = list(set().union(fg, extended_indices)) #We use a set to remove the duplicates which satisfy both criterion
 
     if train:
         if len(bg) == 0:  # No background, only foreground
