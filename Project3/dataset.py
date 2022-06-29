@@ -10,6 +10,8 @@ import h5py
 
 from utils.task2 import roi_pool
 from utils.task3 import sample_proposals
+from utils.problem2 import compute_local_features
+
 
 class DatasetLoader(Dataset):
     def __init__(self, config, split):
@@ -43,8 +45,12 @@ class DatasetLoader(Dataset):
                                                            feat=pooled_feat,
                                                            config=self.config,
                                                            train=self.split=='train')
+        
+        local_features = compute_local_features(targets=assinged_target,
+                                                xyz=xyz)
+
         sampled_frame = {
-            'input': np.concatenate((xyz, feat),-1),
+            'input': np.concatenate((xyz, local_features, feat),-1),
             'assinged_target': assinged_target,
             'iou': iou
         }

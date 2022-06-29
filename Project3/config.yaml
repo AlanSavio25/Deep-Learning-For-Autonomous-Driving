@@ -19,15 +19,16 @@ data:
     sampling_method: "uniform"  # Task 2 Roi-pooling sampling method and task 3 sampling method
 
 model:
-    channel_in: 128
-    npoint: [128, 32, -1]
+    channel_in: 256
+    npoint: [256, 64, -1]
     radius: [0.2, 0.4, 100]
     nsample: [64, 64, 64]
-    mlps: [[128, 128, 128],
-            [128, 128, 256],
-            [256, 256, 512]]
+    mlps: [[256, 128, 128],
+            [128, 128, 128],
+            [128, 256, 512]]
     cls_fc: [256, 256]
     reg_fc: [256, 256]
+    local_mlp_output_channels: [16, 64, 128]
 
 optimizer:
     lr: 0.004

@@ -16,7 +16,7 @@ PERMISSION_FILE_PATH = '~/.ssh/dlad-aws.pem'
 AMI = 'ami-0b64362b8113b27fd' # Pre-setup AMI based on Deep Learning AMI (Ubuntu 18.04) Version 41.0 AMI 07f83f2fb8212ce3b
 REGION = 'us-east-2'
 NON_ROOT = 'ubuntu'
-TIMEOUT = {'train': 48, 'devel': 4}  # in hours
+TIMEOUT = {'train': 72, 'devel': 4}  # in hours
 RSYNC_EXCLUDE = "--exclude 'wandb/' --exclude 'doc/'"
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 

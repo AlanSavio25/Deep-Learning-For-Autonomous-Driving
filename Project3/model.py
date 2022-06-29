@@ -11,6 +11,17 @@ class Model(nn.Module):
         super().__init__()
         self.__dict__.update(config)
 
+        # MLP to encode local_features at same level as feat
+        channel_in = 4
+        local_mlp = []
+        for output_channel in self.local_mlp_output_channels:
+            local_mlp.extend([
+                nn.Linear(channel_in, output_channel),
+                nn.ReLU(inplace=True),
+            ])
+            channel_in=output_channel
+        self.local_mlp = nn.Sequential(*local_mlp)
+
         # Encoder
         channel_in = self.channel_in
         self.set_abstraction = nn.ModuleList()
@@ -58,11 +69,17 @@ class Model(nn.Module):
 
     def forward(self, x):
         xyz = x[..., 0:3].contiguous()                      # (B,N,3)    
-        feat = x[..., 3:].transpose(1, 2).contiguous()      # (B,C,N)
+        local_features = x[..., 3:7]                        # (B,N,4)
+        feat = x[..., 7:].transpose(1, 2).contiguous()      # (B,C,N)
+
+        final_local_features=self.local_mlp(local_features).transpose(1, 2).contiguous()  # (B,C,N)
+
+        feat = torch.cat([feat, final_local_features], dim=1) # (B,2*C,N)
 
         for layer in self.set_abstraction:
             xyz, feat = layer(xyz, feat)
             
         pred_class = self.cls_layers(feat).squeeze(dim=-1)  # (B,1)
         pred_box = self.det_layers(feat).squeeze(dim=-1)    # (B,7)
+        
         return pred_box, pred_class
