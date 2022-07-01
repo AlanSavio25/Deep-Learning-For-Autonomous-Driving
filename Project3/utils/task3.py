@@ -202,18 +202,3 @@ def sample(indexes, required_size, method="random"):
     assert len(samples) == required_size
     print(f"Final samples: {samples}")
     return samples #indices
-
-# Testing
-for i in range(1):
-    pred = np.random.rand(100, 7)
-    target = np.random.rand(5, 7)
-    xyz = np.random.rand(100, 3)
-    feat = np.random.rand(100, 25)
-    import yaml
-
-    config = yaml.safe_load(open('./config.yaml', 'r'))['data']
-    result = sample_proposals(pred, target, xyz, feat, config, train=True)
-    print(result[0].shape)
-    print(result[1].shape)
-    print(result[2].shape)
-    print(result[3].shape)
