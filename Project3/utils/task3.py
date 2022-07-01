@@ -131,21 +131,53 @@ def sample(indexes, required_size, method="random"):
 
     if method == "uniform_targets":
         samples = []
-        targets = set([y for _,y in indexes])
+        targets = list(set([y for _,y in indexes]))
         num_targets = len(targets)
-        print(f"Num targets: {num_targets}")
+
         # allocations = [required_size // num_targets + (1 if x < required_size % num_targets else 0)
         #                for x in range(num_targets)] # eg: [13,13,13,13,12] for 64 required size and 5 targets
-        proposals_per_target = [sum([1 for _,y in indexes if y==t])for t in targets]
-        multiplier = required_size / sum(proposals_per_target)
-        allocations = [round(prop * multiplier) for prop in proposals_per_target]
-        allocations[0] += required_size - sum(allocations)
+        proposals_per_target = [sum([1 for _,y in indexes if y==t]) for t in targets]
+        sorted_proposals_per_target = sorted(zip(proposals_per_target, targets), key=lambda x: x[0])
+
+        almost_equal_allocations = list(reversed([required_size // num_targets + (1 if x < required_size % num_targets else 0)
+                       for x in range(num_targets)])) # eg: [13,13,13,13,12] for 64 required size and 5 targets
+
+
+        zipped = list(zip(sorted_proposals_per_target, almost_equal_allocations))
+        allocations = almost_equal_allocations.copy()
+        # allocations = [alloc  if prop>=alloc else prop for (prop, _), alloc in zipped]
+        print()
+        print(f"Init allocations: {allocations}")
+        for i in range(len(sorted_proposals_per_target)):
+            prop = sorted_proposals_per_target[i][0]
+            if prop < allocations[i]:
+                allocations[i] = prop
+            allocations[i+1:] = list(reversed([(required_size - sum(allocations[:i+1])) // (len(allocations[i+1:])) + (1 if x < (required_size - sum(allocations[:i+1])) % len(allocations[i+1:]) else 0)
+                   for x in range((len(allocations[i+1:])))]))
+            print(f"{i} allocations: {allocations}")
+
+        if sum(allocations) < required_size:
+            multiplier = required_size / sum(allocations)
+            allocations = [round(alloc * multiplier) for alloc in allocations]
+            allocations[0] += required_size - sum(allocations)
+
+
+        # sort the initial lengths (keeping the indices)
+
+        # get the equal allocations
+        # iteratively fill in the final allocations.
+        # for each
+        # if the overall length is less than the required length, then proportionally pad.
         print(f"Required_size: {required_size}")
-        print(f"Multiplier: {multiplier}")
+        # print(f"Multiplier: {multiplier}")
+        print(f"Targets: {targets}")
+        print(f"Num targets: {num_targets}")
         print(f"Proposals per target: {proposals_per_target}")
+        print(f"Sorted ppt: {sorted_proposals_per_target}")
+        print(f"Almost equal allocations: {almost_equal_allocations}")
         print(f"Allocations: {allocations}, sum: {sum(allocations)}")
         print(f"Indexes: {indexes}")
-        for i in targets:
+        for (_, i) in sorted_proposals_per_target: # sorted
             all_preds_of_target = [(x,y) for x,y in indexes if y==i]
             print(f"all_preds_of_target: {all_preds_of_target}")
             samples_from_target = sample(all_preds_of_target, required_size=allocations.pop(0), method="uniform")
@@ -168,19 +200,20 @@ def sample(indexes, required_size, method="random"):
 
         assert indices.shape[0] == required_size
     assert len(samples) == required_size
-
+    print(f"Final samples: {samples}")
     return samples #indices
 
 # Testing
-pred = np.random.rand(100, 7)
-target = np.random.rand(5, 7)
-xyz = np.random.rand(100, 3)
-feat = np.random.rand(100, 25)
-import yaml
+for i in range(1):
+    pred = np.random.rand(100, 7)
+    target = np.random.rand(5, 7)
+    xyz = np.random.rand(100, 3)
+    feat = np.random.rand(100, 25)
+    import yaml
 
-config = yaml.safe_load(open('./config.yaml', 'r'))['data']
-result = sample_proposals(pred, target, xyz, feat, config, train=True)
-print(result[0].shape)
-print(result[1].shape)
-print(result[2].shape)
-print(result[3].shape)
+    config = yaml.safe_load(open('./config.yaml', 'r'))['data']
+    result = sample_proposals(pred, target, xyz, feat, config, train=True)
+    print(result[0].shape)
+    print(result[1].shape)
+    print(result[2].shape)
+    print(result[3].shape)
