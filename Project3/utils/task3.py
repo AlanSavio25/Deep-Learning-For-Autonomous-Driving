@@ -2,8 +2,6 @@ import numpy as np
 
 # from task1 import get_iou  # Import libraries when testing locally
 from .task1 import get_iou
-# from .task2 import sample
-# from task2 import sample
 
 
 def sample_proposals(pred, target, xyz, feat, config, train=False):
@@ -54,8 +52,6 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
 
     if train:
         if len(bg) == 0:  # No background, only foreground
-            # fg_indices = sample(extended_fg, config['num_samples'], method=config['sampling_method'])
-            # sample_indices = np.array(extended_fg)[fg_indices].tolist()
             sample_indices = sample(extended_fg, config['num_samples'], method=config['sampling_method'])
 
         elif len(extended_fg) == 0:  # No fg, only bg
@@ -65,18 +61,12 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
                                                        hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method=config['sampling_method'])
 
             elif len(easy_bg) > 0:
-                # easy_bg_indices = sample(easy_bg, config['num_samples'], method=config['sampling_method'])
-                # sample_indices = np.array(easy_bg)[easy_bg_indices].tolist()
                 sample_indices = sample(easy_bg, config['num_samples'], method=config['sampling_method'])
             else:
-                # hard_bg_indices = sample(hard_bg, config['num_samples'], method=config['sampling_method'])
-                # sample_indices = np.array(hard_bg)[hard_bg_indices].tolist()
                 sample_indices = sample(hard_bg, config['num_samples'], method=config['sampling_method'])
 
         else:  # both fg and bg exist in the scene
             if len(extended_fg) >= config['num_fg_sample']:
-                # fg_indices = sample(extended_fg, config['num_fg_sample'], method=config['sampling_method'])
-                # sample_indices = np.array(extended_fg)[fg_indices].tolist()
                 sample_indices = sample(extended_fg, config['num_fg_sample'], method=config['sampling_method'])
             else:
                 sample_indices = extended_fg
@@ -101,14 +91,10 @@ def get_bg_sample_indices(required_samples, easy, hard, bg_hard_ratio, method="r
     num_hard = int(np.floor(bg_hard_ratio * required_samples))
     num_easy = int(required_samples - num_hard)
     if len(easy) > 0:
-        # easy_bg_indices = sample(easy, num_easy, method=method)
-        # easy_indices = np.array(easy)[easy_bg_indices].tolist()
         easy_indices = sample(easy, num_easy, method=method)
     else:
         easy_indices = []
     if len(hard) > 0:
-        # hard_bg_indices = sample(hard, num_hard, method=method)
-        # hard_indices = np.array(hard)[hard_bg_indices].tolist()
         hard_indices = sample(hard, num_hard, method=method)
     else:
         hard_indices = []
@@ -134,8 +120,6 @@ def sample(indexes, required_size, method="random"):
         targets = list(set([y for _,y in indexes]))
         num_targets = len(targets)
 
-        # allocations = [required_size // num_targets + (1 if x < required_size % num_targets else 0)
-        #                for x in range(num_targets)] # eg: [13,13,13,13,12] for 64 required size and 5 targets
         proposals_per_target = [sum([1 for _,y in indexes if y==t]) for t in targets]
         sorted_proposals_per_target = sorted(zip(proposals_per_target, targets), key=lambda x: x[0])
 
@@ -143,9 +127,7 @@ def sample(indexes, required_size, method="random"):
                        for x in range(num_targets)])) # eg: [13,13,13,13,12] for 64 required size and 5 targets
 
 
-        zipped = list(zip(sorted_proposals_per_target, almost_equal_allocations))
         allocations = almost_equal_allocations.copy()
-        # allocations = [alloc  if prop>=alloc else prop for (prop, _), alloc in zipped]
         for i in range(len(sorted_proposals_per_target)):
             prop = sorted_proposals_per_target[i][0]
             if prop < allocations[i]:
@@ -178,4 +160,4 @@ def sample(indexes, required_size, method="random"):
 
         assert indices.shape[0] == required_size
     assert len(samples) == required_size
-    return samples #indices
+    return samples
