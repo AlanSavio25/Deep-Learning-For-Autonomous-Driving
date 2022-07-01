@@ -146,15 +146,12 @@ def sample(indexes, required_size, method="random"):
         zipped = list(zip(sorted_proposals_per_target, almost_equal_allocations))
         allocations = almost_equal_allocations.copy()
         # allocations = [alloc  if prop>=alloc else prop for (prop, _), alloc in zipped]
-        print()
-        print(f"Init allocations: {allocations}")
         for i in range(len(sorted_proposals_per_target)):
             prop = sorted_proposals_per_target[i][0]
             if prop < allocations[i]:
                 allocations[i] = prop
             allocations[i+1:] = list(reversed([(required_size - sum(allocations[:i+1])) // (len(allocations[i+1:])) + (1 if x < (required_size - sum(allocations[:i+1])) % len(allocations[i+1:]) else 0)
                    for x in range((len(allocations[i+1:])))]))
-            print(f"{i} allocations: {allocations}")
 
         if sum(allocations) < required_size:
             multiplier = required_size / sum(allocations)
@@ -162,26 +159,9 @@ def sample(indexes, required_size, method="random"):
             allocations[0] += required_size - sum(allocations)
 
 
-        # sort the initial lengths (keeping the indices)
-
-        # get the equal allocations
-        # iteratively fill in the final allocations.
-        # for each
-        # if the overall length is less than the required length, then proportionally pad.
-        print(f"Required_size: {required_size}")
-        # print(f"Multiplier: {multiplier}")
-        print(f"Targets: {targets}")
-        print(f"Num targets: {num_targets}")
-        print(f"Proposals per target: {proposals_per_target}")
-        print(f"Sorted ppt: {sorted_proposals_per_target}")
-        print(f"Almost equal allocations: {almost_equal_allocations}")
-        print(f"Allocations: {allocations}, sum: {sum(allocations)}")
-        print(f"Indexes: {indexes}")
         for (_, i) in sorted_proposals_per_target: # sorted
             all_preds_of_target = [(x,y) for x,y in indexes if y==i]
-            print(f"all_preds_of_target: {all_preds_of_target}")
             samples_from_target = sample(all_preds_of_target, required_size=allocations.pop(0), method="uniform")
-            print(f"samples_from_target: {samples_from_target}")
             samples += samples_from_target
     else:
         if  ind_of_indexes.shape[0] < required_size:
@@ -194,11 +174,8 @@ def sample(indexes, required_size, method="random"):
                 raise ValueError(f"Method '{method}' is not valid! Must be 'random' or 'uniform'.")
         elif ind_of_indexes.shape[0] >= required_size:
             indices = np.random.choice(ind_of_indexes, size=required_size, replace=False)
-        print(f"indices: {len(indices), indices}")
-        print(f"indexes: {len(indexes), indexes}")
         samples = np.array(indexes)[indices].tolist()
 
         assert indices.shape[0] == required_size
     assert len(samples) == required_size
-    print(f"Final samples: {samples}")
     return samples #indices
