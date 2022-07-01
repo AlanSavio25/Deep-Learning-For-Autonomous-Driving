@@ -134,9 +134,16 @@ def sample(indexes, required_size, method="random"):
         targets = set([y for _,y in indexes])
         num_targets = len(targets)
         print(f"Num targets: {num_targets}")
-        allocations = [required_size // num_targets + (1 if x < required_size % num_targets else 0)
-                       for x in range(num_targets)] # eg: [13,13,13,13,12] for 64 required size and 5 targets
-        print(f"Allocations: {allocations}")
+        # allocations = [required_size // num_targets + (1 if x < required_size % num_targets else 0)
+        #                for x in range(num_targets)] # eg: [13,13,13,13,12] for 64 required size and 5 targets
+        proposals_per_target = [sum([1 for _,y in indexes if y==t])for t in targets]
+        multiplier = required_size / sum(proposals_per_target)
+        allocations = [round(prop * multiplier) for prop in proposals_per_target]
+        allocations[0] += required_size - sum(allocations)
+        print(f"Required_size: {required_size}")
+        print(f"Multiplier: {multiplier}")
+        print(f"Proposals per target: {proposals_per_target}")
+        print(f"Allocations: {allocations}, sum: {sum(allocations)}")
         print(f"Indexes: {indexes}")
         for i in targets:
             all_preds_of_target = [(x,y) for x,y in indexes if y==i]
