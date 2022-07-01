@@ -6,7 +6,7 @@ name: 'default'
 
 data:
     root_dir: '/home/ubuntu/dataset'
-    #root_dir: './dataset'
+#    root_dir: './dataset'
     batch_size: 4
     delta: 1.0                  # Task 2a: Extension of the bounding boxes
     max_points: 512             # Task 2b: Maximum points per pooled region
@@ -16,7 +16,8 @@ data:
     t_fg_lb: 0.55               # Task 3b: Foreground sample iou lower bound
     t_bg_hard_lb: 0.05          # Task 3b: Background hard sample iou lower bound
     t_bg_up: 0.45               # Task 3b: Background sample iou upper bound
-    sampling_method: "uniform"  # Task 2 Roi-pooling sampling method and task 3 sampling method
+    sampling_method_roi: "uniform"  # Task 2 Roi-pooling sampling method
+    sampling_method_prop: "uniform_targets"  # Task 3 Proposal sampling
 
 model:
     channel_in: 128
@@ -55,5 +56,5 @@ trainer:
     resume_from_checkpoint:
     num_sanity_val_steps: 0
     # Uncomment the following options if you want to try out framework changes without training too long
-    # limit_train_batches: 10
-    # log_every_n_steps: 5
+    limit_train_batches: 10
+    log_every_n_steps: 5

@@ -52,28 +52,28 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
 
     if train:
         if len(bg) == 0:  # No background, only foreground
-            sample_indices = sample(extended_fg, config['num_samples'], method=config['sampling_method'])
+            sample_indices = sample(extended_fg, config['num_samples'], method=config['sampling_method_prop'])
 
         elif len(extended_fg) == 0:  # No fg, only bg
             if len(easy_bg) > 0 and len(hard_bg) > 0:
 
                 sample_indices = get_bg_sample_indices(required_samples=config['num_samples'], easy=easy_bg,
-                                                       hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method=config['sampling_method'])
+                                                       hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method=config['sampling_method_prop'])
 
             elif len(easy_bg) > 0:
-                sample_indices = sample(easy_bg, config['num_samples'], method=config['sampling_method'])
+                sample_indices = sample(easy_bg, config['num_samples'], method=config['sampling_method_prop'])
             else:
-                sample_indices = sample(hard_bg, config['num_samples'], method=config['sampling_method'])
+                sample_indices = sample(hard_bg, config['num_samples'], method=config['sampling_method_prop'])
 
         else:  # both fg and bg exist in the scene
             if len(extended_fg) >= config['num_fg_sample']:
-                sample_indices = sample(extended_fg, config['num_fg_sample'], method=config['sampling_method'])
+                sample_indices = sample(extended_fg, config['num_fg_sample'], method=config['sampling_method_prop'])
             else:
                 sample_indices = extended_fg
 
             required_bg_samples = config['num_samples'] - len(sample_indices)
             bg_sample_indices = get_bg_sample_indices(required_samples=required_bg_samples, easy=easy_bg,
-                                                      hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method=config['sampling_method'])
+                                                      hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method=config['sampling_method_prop'])
             sample_indices = sample_indices + bg_sample_indices
     else:
         sample_indices = extended_fg + bg

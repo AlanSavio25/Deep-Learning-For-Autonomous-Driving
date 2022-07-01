@@ -47,7 +47,7 @@ def roi_pool(pred, xyz, feat, config):
         if  indexes_in_box.shape[0] > 0:
             valid_pred.append(box)
             
-            indices = sample(indexes_in_box, max_points, method=config['sampling_method'])
+            indices = sample(indexes_in_box, max_points, method=config['sampling_method_roi'])
 
             xyz_samples = xyz[indices]
             feat_samples = feat[indices]
