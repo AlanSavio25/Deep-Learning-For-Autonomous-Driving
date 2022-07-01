@@ -2,7 +2,8 @@ import numpy as np
 
 # from task1 import get_iou  # Import libraries when testing locally
 from .task1 import get_iou
-from .task2 import sample
+# from .task2 import sample
+# from task2 import sample
 
 
 def sample_proposals(pred, target, xyz, feat, config, train=False):
@@ -49,40 +50,43 @@ def sample_proposals(pred, target, xyz, feat, config, train=False):
     hard_bg = [idx for idx in indices if config['t_bg_up'] > iou[idx] >= config['t_bg_hard_lb']]
 
     extended_indices = [(x, y) for x, y in zip(np.argmax(iou, axis=0), np.arange(iou.shape[1])) if iou[x, y] > 0]
-    extended_fg = list(set().union(fg, extended_indices)) #We use a set to remove the duplicates which satisfy both criterion
+    extended_fg = list(set().union(fg, extended_indices)) # We use a set to remove the duplicates which satisfy both criterion
 
     if train:
         if len(bg) == 0:  # No background, only foreground
-            fg_indices = sample(np.arange(len(extended_fg)), config['num_samples'], method = config['sampling_method'])
-            sample_indices = np.array(extended_fg)[fg_indices].tolist()
+            # fg_indices = sample(extended_fg, config['num_samples'], method=config['sampling_method'])
+            # sample_indices = np.array(extended_fg)[fg_indices].tolist()
+            sample_indices = sample(extended_fg, config['num_samples'], method=config['sampling_method'])
 
         elif len(extended_fg) == 0:  # No fg, only bg
             if len(easy_bg) > 0 and len(hard_bg) > 0:
 
                 sample_indices = get_bg_sample_indices(required_samples=config['num_samples'], easy=easy_bg,
-                                                       hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method = config['sampling_method'])
+                                                       hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method=config['sampling_method'])
 
             elif len(easy_bg) > 0:
-                easy_bg_indices = sample(np.arange(len(easy_bg)), config['num_samples'], method = config['sampling_method'])
-                sample_indices = np.array(easy_bg)[easy_bg_indices].tolist()
+                # easy_bg_indices = sample(easy_bg, config['num_samples'], method=config['sampling_method'])
+                # sample_indices = np.array(easy_bg)[easy_bg_indices].tolist()
+                sample_indices = sample(easy_bg, config['num_samples'], method=config['sampling_method'])
             else:
-                hard_bg_indices = sample(np.arange(len(hard_bg)), config['num_samples'], method = config['sampling_method'])
-                sample_indices = np.array(hard_bg)[hard_bg_indices].tolist()
+                # hard_bg_indices = sample(hard_bg, config['num_samples'], method=config['sampling_method'])
+                # sample_indices = np.array(hard_bg)[hard_bg_indices].tolist()
+                sample_indices = sample(hard_bg, config['num_samples'], method=config['sampling_method'])
 
         else:  # both fg and bg exist in the scene
             if len(extended_fg) >= config['num_fg_sample']:
-                fg_indices = sample(np.arange(len(extended_fg)), config['num_fg_sample'], method = config['sampling_method'])
-                sample_indices = np.array(extended_fg)[fg_indices].tolist()
+                # fg_indices = sample(extended_fg, config['num_fg_sample'], method=config['sampling_method'])
+                # sample_indices = np.array(extended_fg)[fg_indices].tolist()
+                sample_indices = sample(extended_fg, config['num_fg_sample'], method=config['sampling_method'])
             else:
                 sample_indices = extended_fg
 
             required_bg_samples = config['num_samples'] - len(sample_indices)
             bg_sample_indices = get_bg_sample_indices(required_samples=required_bg_samples, easy=easy_bg,
-                                                      hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method = config['sampling_method'])
+                                                      hard=hard_bg, bg_hard_ratio=config['bg_hard_ratio'], method=config['sampling_method'])
             sample_indices = sample_indices + bg_sample_indices
     else:
         sample_indices = extended_fg + bg
-
     samples_targets = target[[t for _, t in sample_indices]]
     samples_xyz = xyz[[p for p, _ in sample_indices]]
     samples_feat = feat[[p for p, _ in sample_indices]]
@@ -97,15 +101,79 @@ def get_bg_sample_indices(required_samples, easy, hard, bg_hard_ratio, method="r
     num_hard = int(np.floor(bg_hard_ratio * required_samples))
     num_easy = int(required_samples - num_hard)
     if len(easy) > 0:
-        easy_bg_indices = sample(np.arange(len(easy)), num_easy, method = method)
-        easy_indices = np.array(easy)[easy_bg_indices].tolist()
+        # easy_bg_indices = sample(easy, num_easy, method=method)
+        # easy_indices = np.array(easy)[easy_bg_indices].tolist()
+        easy_indices = sample(easy, num_easy, method=method)
     else:
         easy_indices = []
     if len(hard) > 0:
-        hard_bg_indices = sample(np.arange(len(hard)), num_hard, method = method)
-        hard_indices = np.array(hard)[hard_bg_indices].tolist()
+        # hard_bg_indices = sample(hard, num_hard, method=method)
+        # hard_indices = np.array(hard)[hard_bg_indices].tolist()
+        hard_indices = sample(hard, num_hard, method=method)
     else:
         hard_indices = []
 
     sample_indices = easy_indices + hard_indices
     return sample_indices
+
+def sample(indexes, required_size, method="random"):
+    '''
+    input
+        indexes, (K, 2): tuple indexes that point to a specific pred-target pair
+        required_size, int: number of samples required
+        method, string: Method used to sample, must be either 'random' or 'uniform' or 'uniform_targets', default is 'random'
+    output
+        selected_indices (required_size, ) Samples of indexes of boxes
+    '''
+    # indices = np.arange(len(indexes))
+    ind_of_indexes = np.arange(len(indexes))
+    indices = indexes
+
+    if method == "uniform_targets":
+        samples = []
+        targets = set([y for _,y in indexes])
+        num_targets = len(targets)
+        print(f"Num targets: {num_targets}")
+        allocations = [required_size // num_targets + (1 if x < required_size % num_targets else 0)
+                       for x in range(num_targets)] # eg: [13,13,13,13,12] for 64 required size and 5 targets
+        print(f"Allocations: {allocations}")
+        print(f"Indexes: {indexes}")
+        for i in targets:
+            all_preds_of_target = [(x,y) for x,y in indexes if y==i]
+            print(f"all_preds_of_target: {all_preds_of_target}")
+            samples_from_target = sample(all_preds_of_target, required_size=allocations.pop(0), method="uniform")
+            print(f"samples_from_target: {samples_from_target}")
+            samples += samples_from_target
+    else:
+        if  ind_of_indexes.shape[0] < required_size:
+            if method == "random":
+                indices = np.random.choice(ind_of_indexes, size=required_size, replace=True)
+            elif method == "uniform":
+                number_tiles = int(required_size/ind_of_indexes.shape[0]) if required_size%ind_of_indexes.shape[0]==0 else int(required_size/ind_of_indexes.shape[0])+1
+                indices = np.tile(ind_of_indexes, number_tiles)[:required_size]
+            else:
+                raise ValueError(f"Method '{method}' is not valid! Must be 'random' or 'uniform'.")
+        elif ind_of_indexes.shape[0] >= required_size:
+            indices = np.random.choice(ind_of_indexes, size=required_size, replace=False)
+        print(f"indices: {len(indices), indices}")
+        print(f"indexes: {len(indexes), indexes}")
+        samples = np.array(indexes)[indices].tolist()
+
+        assert indices.shape[0] == required_size
+    assert len(samples) == required_size
+
+    return samples #indices
+
+# Testing
+pred = np.random.rand(100, 7)
+target = np.random.rand(5, 7)
+xyz = np.random.rand(100, 3)
+feat = np.random.rand(100, 25)
+import yaml
+
+config = yaml.safe_load(open('./config.yaml', 'r'))['data']
+result = sample_proposals(pred, target, xyz, feat, config, train=True)
+print(result[0].shape)
+print(result[1].shape)
+print(result[2].shape)
+print(result[3].shape)
