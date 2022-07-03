@@ -69,6 +69,10 @@ class ClassificationLoss(nn.Module):
 
 class BinBasedRegressionLoss(nn.Module):
 
+    '''
+    Adapted from PointRCNN: https://github.com/sshaoshuai/PointRCNN
+    '''
+
     def __init__(self, config):
         super().__init__()
         self.loss = nn.SmoothL1Loss()
