@@ -1,5 +1,15 @@
 # DLAD Exercise 3
 
+
+### GROUP 30: Problem 2
+
+To run our experiments in Problem 2, the following config settings need to selected.
+1. For the np.tile based padding in the sampling, set both config['data']['sampling_method_roi'] and config['data']['sampling_method_prop'] to "uniform"
+2. For the sampling that ensures every target is well represented in the proposal sampling, set config['data']['sampling_method_prop'] to 'uniform_targets'
+
+The code for the experiment where we tried to add local spatial information is available in the branch named use_local_features.
+
+The code for the experiment where we tried to replace the regression loss with the bin-based regression loss is available in the BinBasedRegresionLoss branch.
 ### AWS Setup
 
 If not already done, please follow https://gitlab.ethz.ch/dlad21/aws-tools/ to setup your AWS access.
