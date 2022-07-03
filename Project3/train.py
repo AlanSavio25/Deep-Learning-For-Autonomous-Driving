@@ -25,7 +25,7 @@ from pytorch_lightning.loggers import WandbLogger, TensorBoardLogger
 from model import Model
 from dataset import DatasetLoader
 
-from utils.task4 import RegressionLoss, ClassificationLoss
+from utils.task4 import RegressionLoss, ClassificationLoss, BinBasedRegressionLoss
 from utils.eval import generate_final_predictions, save_detections, generate_submission, compute_map
 from utils.vis import point_scene
 
@@ -40,7 +40,7 @@ class LitModel(pl.LightningModule):
         if os.path.exists(self.output_dir): shutil.rmtree(self.output_dir)
         os.makedirs(self.output_dir)
         self.model = Model(config['model'])
-        self.reg_loss = RegressionLoss(config['loss'])
+        self.reg_loss = RegressionLoss(config['loss']) if self.config['loss']['reg_loss'] == 'original' else BinBasedRegressionLoss()
         self.cls_loss = ClassificationLoss(config['loss'])
 
     def forward(self, x):
