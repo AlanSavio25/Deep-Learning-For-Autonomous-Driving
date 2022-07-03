@@ -56,5 +56,5 @@ trainer:
     resume_from_checkpoint:
     num_sanity_val_steps: 0
     # Uncomment the following options if you want to try out framework changes without training too long
-    limit_train_batches: 10
-    log_every_n_steps: 5
+    # limit_train_batches: 10
+    # log_every_n_steps: 5
